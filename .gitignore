@@ -2,4 +2,4 @@
 *.dyn_o
 *.hi
 *.o
-recipes2tex
+_build

@@ -13,6 +13,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+{-# OPTIONS_GHC -Wall #-}
+
 module Cookbook (cookingTime, ingredients, marinateTime, portions, preparationTime, recipe, steps, totalTime) where
 
 import Text.LaTeX.Base.Class
