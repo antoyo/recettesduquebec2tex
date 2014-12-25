@@ -14,7 +14,6 @@
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 {-# LANGUAGE DisambiguateRecordFields, NamedFieldPuns, OverloadedStrings, QuasiQuotes #-}
-{-# OPTIONS_GHC -Wall #-}
 
 module Main (main) where
 
@@ -24,13 +23,13 @@ import qualified Data.Text.Lazy as Text
 import Network.HTTP.Conduit
 import Text.HTML.DOM (parseLBS)
 import Text.LaTeX
-import Text.LaTeX.Base.Pretty (prettyLaTeX)
 import Text.XML.Cursor (Cursor, fromDocument)
 import Text.XML.Scraping (innerText)
 import Text.XML.Selector.TH
 import Text.XML.Selector.Types (JQSelector)
 
 import Cookbook
+import PrettyPrinter
 import Utils (machineName)
 
 data Recipe = Recipe { recipeName :: String
@@ -94,7 +93,7 @@ parseRecipe element url = do
                               , recipePreparationTime = getPreparationTime element
                               , recipeSteps = getSteps element
                               }
-    execLaTeXT (recipeToLaTeX onlineRecipe) >>= prettyLaTeX
+    execLaTeXT (recipeToLaTeX onlineRecipe) >>= prettyPrint
 
 recipeToLaTeX :: Monad m => Recipe -> LaTeXT_ m
 recipeToLaTeX (Recipe {recipeName, recipeURL, recipeCookingTime, recipeIngredients, recipeMarinateTime, recipePortions, recipePreparationTime, recipeSteps}) = do

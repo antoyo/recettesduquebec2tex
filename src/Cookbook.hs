@@ -13,12 +13,12 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-{-# OPTIONS_GHC -Wall #-}
-
 module Cookbook (cookingTime, ingredients, marinateTime, portions, preparationTime, recipe, steps, totalTime) where
 
 import Text.LaTeX.Base.Class
 import Text.LaTeX.Base.Syntax
+
+import Utils
 
 cookingTime :: LaTeXC l => l -> l
 cookingTime = comm1 "cookingtime"
@@ -36,7 +36,7 @@ preparationTime :: LaTeXC l => l -> l
 preparationTime = comm1 "preparationtime"
 
 recipe :: LaTeXC l => l -> l -> l -> l
-recipe = liftL3 $ \category machineName name -> TeXComm "recipe" [FixArg category, FixArg machineName, FixArg name]
+recipe = comm3 "recipe"
 
 steps :: LaTeXC l => l -> l
 steps = liftL $ TeXEnv "steps" []

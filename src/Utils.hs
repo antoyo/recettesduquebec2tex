@@ -13,61 +13,50 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-{-# OPTIONS_GHC -Wall #-}
-
-module Utils (machineName) where
+module Utils (comm3, machineName) where
 
 import Data.Char (toLower, toUpper)
+import Data.Maybe (fromJust, isJust)
+import Text.LaTeX.Base.Class
+import Text.LaTeX.Base.Syntax
 
-data Capitalization = ToUpper | ToLower | Same
+data Capitalization = ToUpper | ToLower
+
+comm3 :: LaTeXC l => String -> l -> l -> l -> l
+comm3 str = liftL3 $ \l1 l2 l3 -> TeXComm str [FixArg l1, FixArg l2, FixArg l3]
+
+letters :: [(Char, Char)]
+letters = [ ('á', 'a')
+          , ('à', 'a')
+          , ('â', 'a')
+          , ('ä', 'a')
+          , ('é', 'e')
+          , ('è', 'e')
+          , ('ê', 'e')
+          , ('ë', 'e')
+          , ('í', 'i')
+          , ('ì', 'i')
+          , ('î', 'i')
+          , ('ï', 'i')
+          , ('ó', 'o')
+          , ('ò', 'o')
+          , ('ô', 'o')
+          , ('ö', 'o')
+          , ('ú', 'u')
+          , ('ù', 'u')
+          , ('û', 'u')
+          , ('ü', 'u')
+          ]
 
 machineName :: String -> String
 machineName = machineName' ToLower
 
 machineName' :: Capitalization -> String -> String
 machineName' _ "" = ""
-machineName' capitalization ('á':name) = machineName' capitalization ('a':name)
-machineName' capitalization ('à':name) = machineName' capitalization ('a':name)
-machineName' capitalization ('â':name) = machineName' capitalization ('a':name)
-machineName' capitalization ('ä':name) = machineName' capitalization ('a':name)
-machineName' capitalization ('Á':name) = machineName' capitalization ('A':name)
-machineName' capitalization ('À':name) = machineName' capitalization ('A':name)
-machineName' capitalization ('Â':name) = machineName' capitalization ('A':name)
-machineName' capitalization ('Ä':name) = machineName' capitalization ('A':name)
-machineName' capitalization ('é':name) = machineName' capitalization ('e':name)
-machineName' capitalization ('è':name) = machineName' capitalization ('e':name)
-machineName' capitalization ('ê':name) = machineName' capitalization ('e':name)
-machineName' capitalization ('ë':name) = machineName' capitalization ('e':name)
-machineName' capitalization ('É':name) = machineName' capitalization ('E':name)
-machineName' capitalization ('È':name) = machineName' capitalization ('E':name)
-machineName' capitalization ('Ê':name) = machineName' capitalization ('E':name)
-machineName' capitalization ('Ë':name) = machineName' capitalization ('E':name)
-machineName' capitalization ('í':name) = machineName' capitalization ('i':name)
-machineName' capitalization ('ì':name) = machineName' capitalization ('i':name)
-machineName' capitalization ('î':name) = machineName' capitalization ('i':name)
-machineName' capitalization ('ï':name) = machineName' capitalization ('i':name)
-machineName' capitalization ('Í':name) = machineName' capitalization ('I':name)
-machineName' capitalization ('Ì':name) = machineName' capitalization ('I':name)
-machineName' capitalization ('Î':name) = machineName' capitalization ('I':name)
-machineName' capitalization ('Ï':name) = machineName' capitalization ('I':name)
-machineName' capitalization ('ó':name) = machineName' capitalization ('o':name)
-machineName' capitalization ('ò':name) = machineName' capitalization ('o':name)
-machineName' capitalization ('ô':name) = machineName' capitalization ('o':name)
-machineName' capitalization ('ö':name) = machineName' capitalization ('o':name)
-machineName' capitalization ('Ó':name) = machineName' capitalization ('O':name)
-machineName' capitalization ('Ò':name) = machineName' capitalization ('O':name)
-machineName' capitalization ('Ô':name) = machineName' capitalization ('O':name)
-machineName' capitalization ('Ö':name) = machineName' capitalization ('O':name)
-machineName' capitalization ('ú':name) = machineName' capitalization ('u':name)
-machineName' capitalization ('ù':name) = machineName' capitalization ('u':name)
-machineName' capitalization ('û':name) = machineName' capitalization ('u':name)
-machineName' capitalization ('ü':name) = machineName' capitalization ('u':name)
-machineName' capitalization ('Ú':name) = machineName' capitalization ('U':name)
-machineName' capitalization ('Ù':name) = machineName' capitalization ('U':name)
-machineName' capitalization ('Û':name) = machineName' capitalization ('U':name)
-machineName' capitalization ('Ü':name) = machineName' capitalization ('U':name)
 machineName' _ ('-':name) = machineName' ToUpper name
 machineName' _ (' ':name) = machineName' ToUpper name
-machineName' ToUpper (n:name) = toUpper n : machineName' Same name
-machineName' ToLower (n:name) = toLower n : machineName' Same name
-machineName' Same (n:name) = n : machineName' Same name
+machineName' capitalization (l:name)
+    | isJust found = machineName' capitalization $ fromJust found:name
+        where found = lookup (toLower l) letters
+machineName' ToUpper (n:name) = toUpper n : machineName' ToLower name
+machineName' ToLower (n:name) = toLower n : machineName' ToLower name
