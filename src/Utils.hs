@@ -13,15 +13,28 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-module Utils (comm3, machineName) where
+{-|
+Module      : Utils
+Description : Util functions.
+Copyright   : © Antoni Boucher, 2014
+License     : GPL-3
+Maintener   : bouanto@zoho.com
+Stability   : experimental
+Portability : POSIX
 
-import Data.Char (toLower, toUpper)
+This module provides util functions.
+-}
+
+module Utils (comm3, machineName, trim) where
+
+import Data.Char (isSpace, toLower, toUpper)
 import Data.Maybe (fromJust, isJust)
 import Text.LaTeX.Base.Class
 import Text.LaTeX.Base.Syntax
 
 data Capitalization = ToUpper | ToLower
 
+-- |A three parameter command generator using the name of the command.
 comm3 :: LaTeXC l => String -> l -> l -> l -> l
 comm3 str = liftL3 $ \l1 l2 l3 -> TeXComm str [FixArg l1, FixArg l2, FixArg l3]
 
@@ -48,6 +61,11 @@ letters = [ ('á', 'a')
           , ('ü', 'u')
           ]
 
+-- |Generate a machine name of a string.
+--
+-- Every special character will be replaced or removed.
+--
+-- > machineName "machine name" = "machineName"
 machineName :: String -> String
 machineName = machineName' ToLower
 
@@ -60,3 +78,7 @@ machineName' capitalization (l:name)
         where found = lookup (toLower l) letters
 machineName' ToUpper (n:name) = toUpper n : machineName' ToLower name
 machineName' ToLower (n:name) = toLower n : machineName' ToLower name
+
+-- |Remove the whitespaces at each end of a string.
+trim :: String -> String
+trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace

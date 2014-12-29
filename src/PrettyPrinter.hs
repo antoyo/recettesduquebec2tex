@@ -13,6 +13,18 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+{-|
+Module      : PrettyPrinter
+Description : Pretty printer for HaTeX documents.
+Copyright   : © Antoni Boucher, 2014
+License     : GPL-3
+Maintener   : bouanto@zoho.com
+Stability   : experimental
+Portability : POSIX
+
+This module provides a pretty printer for HaTeX documents which outputs a human-readable LaTeX document.
+-}
+
 module PrettyPrinter (prettyPrint) where
 
 import Data.Monoid (mconcat)
@@ -20,10 +32,14 @@ import qualified Data.Text as Text
 import Text.LaTeX.Base.Syntax (LaTeX (..), TeXArg (..))
 import Text.PrettyPrint.Free
 
+import Utils (trim)
+
+-- |Pretty print a LaTeX document in a human-readable format.
 prettyPrint :: LaTeX -> String
-prettyPrint latex = show $ (latex2Doc latex False)
+prettyPrint latex = trim (show $ latex2Doc latex False) ++ "\n"
 
 latex2Doc :: LaTeX -> Bool -> Doc ()
+latex2Doc (TeXComm n []) _ = backslash <> text n <> text "{}" <> line <> line
 latex2Doc (TeXComm n args) _ = backslash <> text n <> mconcat (map latexArg2Doc args) <> line <> line
 latex2Doc (TeXCommS n) newLine = backslash <> text n <> newLineOrEmpty newLine
 latex2Doc (TeXComment comment) _ = text "% " <> text (Text.unpack comment) <> line <> line
