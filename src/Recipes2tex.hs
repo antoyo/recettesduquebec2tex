@@ -14,7 +14,6 @@
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- TODO: check if a missing image cause an issue.
--- TODO: check errors like writing the file when the directory does not exist.
 -- TODO: check if the image has the right extension and is shown in the generated PDF.
 -- TODO: create a module for the downloader and another module for the converter.
 -- TODO: divide the downloader module so that we can support other recipe websites later.
@@ -48,7 +47,9 @@ import qualified Data.Map as Map
 import qualified Data.Text as Text
 import qualified Data.Text.Lazy as LazyText
 import Network.HTTP.Conduit
+import System.Directory (createDirectoryIfMissing)
 import System.Environment (getArgs)
+import System.FilePath ((</>), (<.>))
 import Text.HTML.DOM (parseLBS)
 import Text.LaTeX
 import Text.XML (Element (elementAttributes), Node (NodeElement))
@@ -100,9 +101,11 @@ askRecipeType = do
 doIO :: RecipeType -> RecipeFiles -> IO ()
 doIO recipeType recipeFiles = do
     let RecipeFiles { recipeFile, recipeIndex, recipeMachineName } = recipeFiles
-        recipeFileName = show recipeType ++ "/" ++ recipeMachineName ++ ".tex"
+        directoryName = show recipeType
+        recipeFileName = directoryName </> recipeMachineName <.> "tex"
     putStrLn "Add this line in recipes.tex:"
     putStrLn recipeIndex
+    createDirectoryIfMissing False directoryName
     writeFile recipeFileName recipeFile
     putStrLn $ "Recipe written to " ++ recipeFileName ++ "."
 
@@ -110,10 +113,9 @@ downloadImage :: Cursor -> RecipeType -> RecipeFiles -> IO ()
 downloadImage element recipeType (RecipeFiles { recipeMachineName }) =
     case getSrc [jq| [itemprop="image"] |] element of
         Nothing -> return ()
-        Just imageURL -> do
-            putStrLn imageURL
-            image <- simpleHttp imageURL
-            ByteString.writeFile (show recipeType ++ "/" ++ recipeMachineName ++ ".png") image
+        Just imageURL ->
+            simpleHttp imageURL >>=
+                ByteString.writeFile (show recipeType </> recipeMachineName <.> "png")
 
 getCookingTime :: Cursor -> Maybe Int
 getCookingTime = getMaybeIntValue [jq| [itemprop="cookTime"] |]
