@@ -13,7 +13,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
--- TODO: remove parentheses for the machine name.
 -- TODO: check if the image has the right extension and is shown in the generated PDF.
 -- TODO: create a module for the downloader and another module for the converter.
 -- TODO: divide the downloader module so that we can support other recipe websites later.

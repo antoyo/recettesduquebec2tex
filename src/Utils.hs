@@ -82,14 +82,16 @@ machineName = machineName' ToLower . removeCommonWords . unaccentuate
 
 machineName' :: Capitalization -> String -> String
 machineName' _ "" = ""
-machineName' _ ('-':name) = machineName' ToUpper name
-machineName' _ (' ':name) = machineName' ToUpper name
-machineName' _ ('\'':name) = machineName' ToUpper name
+machineName' _ (c:name)
+    | c `elem` specialCharacters = machineName' ToUpper name
 machineName' ToUpper (n:name) = toUpper n : machineName' ToLower name
 machineName' ToLower (n:name) = toLower n : machineName' ToLower name
 
 removeCommonWords :: String -> String
 removeCommonWords string = unwords $ filter (`notElem` commonWords) $ splitWords string
+
+specialCharacters :: String
+specialCharacters = "- '()"
 
 splitWords :: String -> [String]
 splitWords "" = []
