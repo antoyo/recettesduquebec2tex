@@ -28,7 +28,7 @@ This module provides util functions.
 module Utils (comm3, machineName, trim) where
 
 import Data.Char (isSpace, toLower, toUpper)
-import Data.Maybe (fromJust, isJust)
+import Data.Maybe (fromMaybe)
 import Text.LaTeX.Base.Class
 import Text.LaTeX.Base.Syntax
 
@@ -37,6 +37,17 @@ data Capitalization = ToUpper | ToLower
 -- |A three parameter command generator using the name of the command.
 comm3 :: LaTeXC l => String -> l -> l -> l -> l
 comm3 str = liftL3 $ \l1 l2 l3 -> TeXComm str [FixArg l1, FixArg l2, FixArg l3]
+
+commonWords :: [String]
+commonWords = [ "a"
+              , "au"
+              , "aux"
+              , "de"
+              , "du"
+              , "et"
+              , "l"
+              , "la"
+              ]
 
 letters :: [(Char, Char)]
 letters = [ ('á', 'a')
@@ -63,22 +74,40 @@ letters = [ ('á', 'a')
 
 -- |Generate a machine name of a string.
 --
--- Every special character will be replaced or removed.
+-- Every special character/word will be replaced or removed.
 --
--- > machineName "machine name" = "machineName"
+-- > machineName "l'autre nom de la machine" = "autreNomMachine"
 machineName :: String -> String
-machineName = machineName' ToLower
+machineName = machineName' ToLower . removeCommonWords . unaccentuate
 
 machineName' :: Capitalization -> String -> String
 machineName' _ "" = ""
 machineName' _ ('-':name) = machineName' ToUpper name
 machineName' _ (' ':name) = machineName' ToUpper name
-machineName' capitalization (l:name)
-    | isJust found = machineName' capitalization $ fromJust found:name
-        where found = lookup (toLower l) letters
+machineName' _ ('\'':name) = machineName' ToUpper name
 machineName' ToUpper (n:name) = toUpper n : machineName' ToLower name
 machineName' ToLower (n:name) = toLower n : machineName' ToLower name
+
+removeCommonWords :: String -> String
+removeCommonWords string = unwords $ filter (`notElem` commonWords) $ splitWords string
+
+splitWords :: String -> [String]
+splitWords "" = []
+splitWords string = let (word, rest) = break (`elem` delimiters) string
+                    in trim word : splitWords (tailSafe rest)
+    where delimiters = "' "
+
+tailSafe :: [a] -> [a]
+tailSafe [] = []
+tailSafe (_:xs) = xs
 
 -- |Remove the whitespaces at each end of a string.
 trim :: String -> String
 trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
+
+unaccentuate :: String -> String
+unaccentuate = map possiblyUnaccentuate
+    where possiblyUnaccentuate l = fromMaybe l $ unaccentuateLetter l
+
+unaccentuateLetter :: Char -> Maybe Char
+unaccentuateLetter letter = lookup (toLower letter) letters

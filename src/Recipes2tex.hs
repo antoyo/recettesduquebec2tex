@@ -14,9 +14,16 @@
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 -- TODO: check if a missing image cause an issue.
+-- TODO: check errors like writing the file when the directory does not exist.
+-- TODO: check if the image has the right extension and is shown in the generated PDF.
 -- TODO: create a module for the downloader and another module for the converter.
+-- TODO: divide the downloader module so that we can support other recipe websites later.
+-- TODO: the ingredients and the steps can be in different categories.
+-- TODO: try to convert impure functions to pure functions.
+-- TODO: add unit test.
 -- TODO: find the recipe type in the HTML. The only place where it seems to be is in the Google Analytics JS code, for instance:
 -- _gaq.push(['b._setCustomVar', 3, 'Cat3', "dessert", 3]);
+-- TODO: fix common spelling mistakes (oeuf -> œuf).
 
 {-# LANGUAGE DisambiguateRecordFields, NamedFieldPuns, OverloadedStrings, QuasiQuotes #-}
 
