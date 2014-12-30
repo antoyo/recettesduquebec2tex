@@ -13,7 +13,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
--- TODO: check if the image has the right extension and is shown in the generated PDF.
 -- TODO: create a module for the downloader and another module for the converter.
 -- TODO: divide the downloader module so that we can support other recipe websites later.
 -- TODO: the ingredients and the steps can be in different categories.
@@ -120,7 +119,7 @@ downloadImage element recipeType (RecipeFiles { recipeMachineName }) =
             Nothing -> return ()
             Just imageURL ->
                 simpleHttp imageURL >>=
-                    ByteString.writeFile (show recipeType </> recipeMachineName <.> "png")
+                    ByteString.writeFile (show recipeType </> recipeMachineName <.> "jpg")
 
 getAlt :: [Cursor] -> String
 getAlt element = fromMaybe "" $ getAttribute element "alt"
