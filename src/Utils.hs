@@ -25,18 +25,12 @@ Portability : POSIX
 This module provides util functions.
 -}
 
-module Utils (comm3, machineName, trim) where
+module Utils (machineName, trim) where
 
 import Data.Char (isSpace, toLower, toUpper)
 import Data.Maybe (fromMaybe)
-import Text.LaTeX.Base.Class
-import Text.LaTeX.Base.Syntax
 
 data Capitalization = ToUpper | ToLower
-
--- |A three parameter command generator using the name of the command.
-comm3 :: LaTeXC l => String -> l -> l -> l -> l
-comm3 str = liftL3 $ \l1 l2 l3 -> TeXComm str [FixArg l1, FixArg l2, FixArg l3]
 
 commonWords :: [String]
 commonWords = [ "a"

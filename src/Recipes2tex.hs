@@ -13,8 +13,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
--- TODO: create a module for the downloader and another module for the converter.
--- TODO: divide the downloader module so that we can support other recipe websites later.
+-- TODO: refactor the DOM module for more consistent behaviour (like always returning Maybe Something).
+-- TODO: refactor the download functions so that we can support other recipe websites later.
 -- TODO: the ingredients and the steps can be in different categories.
 -- TODO: find the recipe type in the HTML. The only place where it seems to be is in the Google Analytics JS code, for instance:
 -- _gaq.push(['b._setCustomVar', 3, 'Cat3', "dessert", 3]);
@@ -22,7 +22,7 @@
 -- TODO: add unit test.
 -- TODO: fix common spelling mistakes (oeuf -> œuf).
 
-{-# LANGUAGE DisambiguateRecordFields, NamedFieldPuns, OverloadedStrings, QuasiQuotes #-}
+{-# LANGUAGE DisambiguateRecordFields, NamedFieldPuns, OverloadedStrings #-}
 
 {-|
 Module      : Recipes2tex
@@ -33,57 +33,32 @@ Maintener   : bouanto@zoho.com
 Stability   : experimental
 Portability : POSIX
 
-This module fetches the recipe from program argument URL and output LaTeX code in two files.
+This module fetches the recipe from program argument URL and output LaTeX code in one file.
 -}
 
 module Main (main) where
 
 import Control.Applicative ((<$>))
-import Control.Monad (unless)
-import qualified Data.ByteString.Lazy as ByteString
-import Data.Foldable (forM_)
-import qualified Data.Map as Map
-import Data.Maybe (fromMaybe)
-import qualified Data.Text as Text
-import qualified Data.Text.Lazy as LazyText
-import Network.HTTP.Conduit
+import Control.Monad (forM_)
+import qualified Data.ByteString.Lazy as ByteString (writeFile)
+import Network.HTTP.Conduit (simpleHttp)
 import System.Directory (createDirectoryIfMissing)
 import System.Environment (getArgs)
 import System.FilePath ((</>), (<.>))
 import Text.HTML.DOM (parseLBS)
-import Text.LaTeX
-import Text.XML (Element (elementAttributes), Node (NodeElement))
-import Text.XML.Cursor (Cursor, fromDocument, node)
-import Text.XML.Scraping (innerText)
-import Text.XML.Selector.TH
-import Text.XML.Selector.Types (JQSelector)
+import Text.LaTeX (execLaTeXT)
+import Text.XML.Cursor (fromDocument)
 
-import Cookbook
-import PrettyPrinter
+import PrettyPrinter (prettyPrint)
+import Converters.RecettesDuQuebec (parseRecipe)
 import Utils (machineName)
+import Utils.Recipe (Recipe (Recipe, recipeImageURL, recipeName), RecipeType, readRecipeType)
+import Utils.RecipeLaTeX (recipeIndexToLaTeX, recipeToLaTeX)
 
 data RecipeFiles = RecipeFiles { recipeFile :: String
                                , recipeIndex :: String
                                , recipeMachineName :: String
                                }
-
-data Recipe = Recipe { recipeName :: String
-                     , recipeURL :: String
-                     , recipeCookingTime :: Maybe Int
-                     , recipeIngredients :: [String]
-                     , recipeMarinateTime :: Maybe Int
-                     , recipePortions :: Maybe Int
-                     , recipePreparationTime :: Maybe Int
-                     , recipeSteps :: [String]
-                     , recipeType :: RecipeType
-                     }
-
-data RecipeType = Breakfasts | Desserts | MainDishes
-
-instance Show RecipeType where
-    show Breakfasts = "breakfasts"
-    show Desserts = "desserts"
-    show MainDishes = "mainDishes"
 
 askRecipeType :: IO RecipeType
 askRecipeType = do
@@ -109,61 +84,19 @@ doIO recipeType recipeFiles = do
     writeFile recipeFileName recipeFile
     putStrLn $ "Recipe written to " ++ recipeFileName ++ "."
 
-downloadImage :: Cursor -> RecipeType -> RecipeFiles -> IO ()
-downloadImage element recipeType (RecipeFiles { recipeMachineName }) =
-    let image = queryT [jq| [itemprop="image"] |] element
-        alt = getAlt image
+downloadImage :: Maybe String -> RecipeType -> RecipeFiles -> IO ()
+downloadImage Nothing _ _ = return ()
+downloadImage (Just imageURL) recipeType (RecipeFiles { recipeMachineName }) =
+    simpleHttp imageURL >>=
+        ByteString.writeFile (show recipeType </> recipeMachineName <.> "jpg")
+
+getRecipeFiles :: Recipe -> RecipeFiles
+getRecipeFiles recipe@(Recipe {recipeName}) =
+    let recipeMachineName = machineName recipeName
+        recipeIndex = execLaTeXT (recipeIndexToLaTeX recipeMachineName recipe) >>= prettyPrint
+        recipeFile = execLaTeXT (recipeToLaTeX recipe) >>= prettyPrint
     in
-    unless (alt == "Default Image") $
-        case getSrc image of
-            Nothing -> return ()
-            Just imageURL ->
-                simpleHttp imageURL >>=
-                    ByteString.writeFile (show recipeType </> recipeMachineName <.> "jpg")
-
-getAlt :: [Cursor] -> String
-getAlt element = fromMaybe "" $ getAttribute element "alt"
-
-getAttribute :: [Cursor] -> String-> Maybe String
-getAttribute [] _ = Nothing
-getAttribute (c:_) attributeName = let (NodeElement nodeElement) = node c in
-                                   case Map.lookup (fromString attributeName) (elementAttributes nodeElement) of
-                                      Just value -> Just $ Text.unpack value
-                                      Nothing -> Nothing
-
-getCookingTime :: Cursor -> Maybe Int
-getCookingTime = getMaybeIntValue [jq| [itemprop="cookTime"] |]
-
-getIngredients :: Cursor -> [String]
-getIngredients = getValues [jq| [itemprop="ingredients"] |]
-
-getMarinateTime :: Cursor -> Maybe Int
-getMarinateTime = getMaybeIntValue [jq| dd.marinate-time |]
-
-getMaybeIntValue :: [JQSelector] -> Cursor -> Maybe Int
-getMaybeIntValue selector element = case queryT selector element of
-    [] -> Nothing
-    (c:_) -> Just $ read $ head (words $ LazyText.unpack $ innerText c)
-
-getPortions :: Cursor -> Maybe Int
-getPortions = getMaybeIntValue [jq| [itemprop="recipeYield"] |]
-
-getPreparationTime :: Cursor -> Maybe Int
-getPreparationTime = getMaybeIntValue [jq| [itemprop="prepTime"] |]
-
-getRecipeName :: Cursor -> String
-getRecipeName element = unwords $ drop 1 $ words name
-    where name = head $ getValues [jq| [itemprop="name"] |] element
-
-getSrc :: [Cursor] -> Maybe String
-getSrc element = getAttribute element "src"
-
-getSteps :: Cursor -> [String]
-getSteps = getValues [jq| div.step-detail p |]
-
-getValues :: [JQSelector] -> Cursor -> [String]
-getValues selector element = map (LazyText.unpack . innerText) matches
-    where matches = queryT selector element
+    RecipeFiles { recipeFile, recipeIndex, recipeMachineName }
 
 -- |Convert the recipe from the program argument URL and output it as LaTeX code.
 main :: IO ()
@@ -175,54 +108,7 @@ main = do
         forM_ args $ \url -> do
             root <- (fromDocument . parseLBS) <$> simpleHttp url
             recipeType <- askRecipeType
-            let recipeFiles = parseRecipe root url recipeType
+            let recipe = parseRecipe root url recipeType
+                recipeFiles = getRecipeFiles recipe
             doIO recipeType recipeFiles
-            downloadImage root recipeType recipeFiles
-
-maybeLaTeX :: Monad m => (LaTeXT_ m -> LaTeXT_ m) -> Maybe Int -> LaTeXT_ m
-maybeLaTeX f maybeInt = forM_ maybeInt (f . fromString . show)
-
-parseRecipe :: Cursor -> String -> RecipeType -> RecipeFiles
-parseRecipe element url recipeType = do
-    let onlineRecipe = Recipe { recipeName = getRecipeName element
-                              , recipeURL = url
-                              , recipeCookingTime = getCookingTime element
-                              , recipeIngredients = getIngredients element
-                              , recipeMarinateTime = getMarinateTime element
-                              , recipePortions = getPortions element
-                              , recipePreparationTime = getPreparationTime element
-                              , recipeSteps = getSteps element
-                              , recipeType
-                              }
-        recipeMachineName = machineName $ recipeName onlineRecipe
-        recipeIndex = execLaTeXT (recipeIndexToLaTeX recipeMachineName onlineRecipe) >>= prettyPrint
-        recipeFile = execLaTeXT (recipeToLaTeX onlineRecipe) >>= prettyPrint
-    RecipeFiles { recipeFile, recipeIndex, recipeMachineName }
-
-readRecipeType :: String -> Maybe RecipeType
-readRecipeType ('0':_) = Just Desserts
-readRecipeType ('1':_) = Just MainDishes
-readRecipeType ('2':_) = Just Breakfasts
-readRecipeType "" = Just Desserts
-readRecipeType _ = Nothing
-
-recipeIndexToLaTeX :: Monad m => String -> Recipe -> LaTeXT_ m
-recipeIndexToLaTeX machineRecipeName (Recipe {recipeName, recipeType}) = recipe (fromString $ show recipeType) (fromString machineRecipeName) (fromString recipeName)
-
-recipeToLaTeX :: Monad m => Recipe -> LaTeXT_ m
-recipeToLaTeX (Recipe {recipeURL, recipeCookingTime, recipeIngredients, recipeMarinateTime, recipePortions, recipePreparationTime, recipeSteps}) = do
-    comment $ fromString $ "Source: " ++ recipeURL
-    maybeLaTeX preparationTime recipePreparationTime
-    maybeLaTeX marinateTime recipeMarinateTime
-    maybeLaTeX cookingTime recipeCookingTime
-    totalTime
-    maybeLaTeX portions recipePortions
-    ingredients $ stringsToLaTeX recipeIngredients
-    steps $ stringsToLaTeX recipeSteps
-
-stringsToLaTeX :: Monad m => [String] -> LaTeXT_ m
-stringsToLaTeX [] = mempty
-stringsToLaTeX (s:strings) = do
-    item Nothing
-    fromString s
-    stringsToLaTeX strings
+            downloadImage (recipeImageURL recipe) recipeType recipeFiles

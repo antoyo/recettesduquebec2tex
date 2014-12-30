@@ -27,10 +27,10 @@ This module provides functions for the commands and environments of the cookbook
 
 module Cookbook (cookingTime, ingredients, marinateTime, portions, preparationTime, recipe, steps, totalTime) where
 
-import Text.LaTeX.Base.Class
-import Text.LaTeX.Base.Syntax
+import Text.LaTeX.Base.Class (LaTeXC, comm0, comm1, liftL)
+import Text.LaTeX.Base.Syntax (LaTeX (TeXEnv))
 
-import Utils
+import Utils.LaTeX (comm3)
 
 -- |Generate a 'cookingtime' command.
 cookingTime :: LaTeXC l => l -> l

@@ -29,7 +29,7 @@ module PrettyPrinter (prettyPrint) where
 
 import Data.Monoid (mconcat)
 import qualified Data.Text as Text
-import Text.LaTeX.Base.Syntax (LaTeX (..), TeXArg (..))
+import Text.LaTeX.Base.Syntax (LaTeX (TeXComm, TeXCommS, TeXComment, TeXEnv, TeXRaw, TeXSeq), TeXArg (FixArg))
 import Text.PrettyPrint.Free
 
 import Utils (trim)
