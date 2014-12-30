@@ -13,7 +13,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
--- TODO: check if a missing image cause an issue.
+-- TODO: remove parentheses for the machine name.
 -- TODO: check if the image has the right extension and is shown in the generated PDF.
 -- TODO: create a module for the downloader and another module for the converter.
 -- TODO: divide the downloader module so that we can support other recipe websites later.
@@ -41,9 +41,11 @@ This module fetches the recipe from program argument URL and output LaTeX code i
 module Main (main) where
 
 import Control.Applicative ((<$>))
+import Control.Monad (unless)
 import qualified Data.ByteString.Lazy as ByteString
 import Data.Foldable (forM_)
 import qualified Data.Map as Map
+import Data.Maybe (fromMaybe)
 import qualified Data.Text as Text
 import qualified Data.Text.Lazy as LazyText
 import Network.HTTP.Conduit
@@ -111,11 +113,25 @@ doIO recipeType recipeFiles = do
 
 downloadImage :: Cursor -> RecipeType -> RecipeFiles -> IO ()
 downloadImage element recipeType (RecipeFiles { recipeMachineName }) =
-    case getSrc [jq| [itemprop="image"] |] element of
-        Nothing -> return ()
-        Just imageURL ->
-            simpleHttp imageURL >>=
-                ByteString.writeFile (show recipeType </> recipeMachineName <.> "png")
+    let image = queryT [jq| [itemprop="image"] |] element
+        alt = getAlt image
+    in
+    unless (alt == "Default Image") $
+        case getSrc image of
+            Nothing -> return ()
+            Just imageURL ->
+                simpleHttp imageURL >>=
+                    ByteString.writeFile (show recipeType </> recipeMachineName <.> "png")
+
+getAlt :: [Cursor] -> String
+getAlt element = fromMaybe "" $ getAttribute element "alt"
+
+getAttribute :: [Cursor] -> String-> Maybe String
+getAttribute [] _ = Nothing
+getAttribute (c:_) attributeName = let (NodeElement nodeElement) = node c in
+                                   case Map.lookup (fromString attributeName) (elementAttributes nodeElement) of
+                                      Just value -> Just $ Text.unpack value
+                                      Nothing -> Nothing
 
 getCookingTime :: Cursor -> Maybe Int
 getCookingTime = getMaybeIntValue [jq| [itemprop="cookTime"] |]
@@ -141,13 +157,8 @@ getRecipeName :: Cursor -> String
 getRecipeName element = unwords $ drop 1 $ words name
     where name = head $ getValues [jq| [itemprop="name"] |] element
 
-getSrc :: [JQSelector] -> Cursor -> Maybe String
-getSrc selector element = case queryT selector element of
-    [] -> Nothing
-    (c:_) -> let (NodeElement nodeElement) = node c in
-             case Map.lookup (fromString "src") (elementAttributes nodeElement) of
-                 Just src -> Just $ Text.unpack src
-                 Nothing -> Nothing
+getSrc :: [Cursor] -> Maybe String
+getSrc element = getAttribute element "src"
 
 getSteps :: Cursor -> [String]
 getSteps = getValues [jq| div.step-detail p |]
