@@ -25,10 +25,11 @@ Portability : POSIX
 This module fetches the recipe from program argument URL and output LaTeX code in one file.
 -}
 
-module Utils.DOM (getAlt, getAttribute, getMaybeIntValue, getSrc, getValues) where
+module Utils.DOM (getAlt, getAttribute, getFirstWord, getFirstWordAsInt, getSrc, getText, getTexts) where
 
+import Control.Monad ((<=<), liftM)
 import qualified Data.Map as Map (lookup)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (listToMaybe)
 import Data.String (fromString)
 import qualified Data.Text as Text (unpack)
 import qualified Data.Text.Lazy as LazyText (unpack)
@@ -38,27 +39,37 @@ import Text.XML.Scraping (innerText)
 import Text.XML.Selector.TH (queryT)
 import Text.XML.Selector.Types (JQSelector)
 
+import Utils (maybeRead)
+
 -- |Get the alt attribute of the element.
-getAlt :: [Cursor] -> String
-getAlt element = fromMaybe "" $ getAttribute element "alt"
+getAlt :: [Cursor] -> Maybe String
+getAlt = getAttribute "alt"
 
 -- |Get an element attribute by name.
-getAttribute :: [Cursor] -> String -> Maybe String
-getAttribute [] _ = Nothing
-getAttribute (c:_) attributeName = let (NodeElement nodeElement) = node c in
+getAttribute :: String -> [Cursor] -> Maybe String
+getAttribute _ [] = Nothing
+getAttribute attributeName (c:_) = let (NodeElement nodeElement) = node c in
                                    case Map.lookup (fromString attributeName) (elementAttributes nodeElement) of
                                       Just value -> Just $ Text.unpack value
                                       Nothing -> Nothing
 
-getMaybeIntValue :: [JQSelector] -> Cursor -> Maybe Int
-getMaybeIntValue selector element = case queryT selector element of
-    [] -> Nothing
-    (c:_) -> Just $ read $ head (words $ LazyText.unpack $ innerText c)
+-- |Get the first word of the first of the selected elements.
+getFirstWord :: [JQSelector] -> Cursor -> Maybe String
+getFirstWord selector = liftM (takeWhile (/= ' ')) . getText selector
+
+-- |Get the first word of the first of the selected elements as an integer.
+getFirstWordAsInt :: [JQSelector] -> Cursor -> Maybe Int
+getFirstWordAsInt selector = maybeRead <=< getFirstWord selector
 
 -- |Get the src attribute of the element.
 getSrc :: [Cursor] -> Maybe String
-getSrc element = getAttribute element "src"
+getSrc = getAttribute "src"
 
-getValues :: [JQSelector] -> Cursor -> [String]
-getValues selector element = map (LazyText.unpack . innerText) matches
+-- |Get the text of the first element of the selection.
+getText :: [JQSelector] -> Cursor -> Maybe String
+getText selector element = listToMaybe $ getTexts selector element
+
+-- |Get a list of texts from a selection of elements.
+getTexts :: [JQSelector] -> Cursor -> [String]
+getTexts selector element = map (LazyText.unpack . innerText) matches
     where matches = queryT selector element

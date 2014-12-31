@@ -27,7 +27,7 @@ Portability : POSIX
 This module provides util functions to use with HaTeX values.
 -}
 
-module Utils.LaTeX (comm3, maybeLaTeX, stringsToLaTeX) where
+module Utils.LaTeX (comm3, maybeLaTeX, stringsToLaTeXList) where
 
 import Data.Foldable (forM_)
 import Data.Monoid (mempty)
@@ -40,12 +40,14 @@ import Text.LaTeX.Base.Syntax (LaTeX (TeXComm), TeXArg (FixArg))
 comm3 :: LaTeXC l => String -> l -> l -> l -> l
 comm3 str = liftL3 $ \l1 l2 l3 -> TeXComm str [FixArg l1, FixArg l2, FixArg l3]
 
+-- |Convert a possibly null integer to LaTeX using the LaTeX command of the first argument.
 maybeLaTeX :: Monad m => (LaTeXT_ m -> LaTeXT_ m) -> Maybe Int -> LaTeXT_ m
 maybeLaTeX f maybeInt = forM_ maybeInt (f . fromString . show)
 
-stringsToLaTeX :: Monad m => [String] -> LaTeXT_ m
-stringsToLaTeX [] = mempty
-stringsToLaTeX (s:strings) = do
+-- |Convert a list of strings to a LaTeX list of items.
+stringsToLaTeXList :: Monad m => [String] -> LaTeXT_ m
+stringsToLaTeXList [] = mempty
+stringsToLaTeXList (s:strings) = do
     item Nothing
     fromString s
-    stringsToLaTeX strings
+    stringsToLaTeXList strings

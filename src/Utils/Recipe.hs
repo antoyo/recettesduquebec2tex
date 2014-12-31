@@ -27,6 +27,7 @@ This module provides util functions to use with recipes.
 
 module Utils.Recipe (Recipe (Recipe, recipeCookingTime, recipeImageURL, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL), RecipeType (Breakfasts, Desserts, MainDishes), readRecipeType) where
 
+-- |A recipe.
 data Recipe = Recipe { recipeName :: String
                      , recipeURL :: String
                      , recipeCookingTime :: Maybe Int
@@ -39,6 +40,7 @@ data Recipe = Recipe { recipeName :: String
                      , recipeType :: RecipeType
                      }
 
+-- |A recipe type.
 data RecipeType = Breakfasts | Desserts | MainDishes
 
 instance Show RecipeType where
@@ -46,6 +48,7 @@ instance Show RecipeType where
     show Desserts = "desserts"
     show MainDishes = "mainDishes"
 
+-- |Convert a string into a recipe type or Nothing if the string is invalid.
 readRecipeType :: String -> Maybe RecipeType
 readRecipeType ('0':_) = Just Desserts
 readRecipeType ('1':_) = Just MainDishes

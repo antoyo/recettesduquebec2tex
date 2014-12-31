@@ -13,7 +13,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
--- TODO: refactor the DOM module for more consistent behaviour (like always returning Maybe Something).
 -- TODO: refactor the download functions so that we can support other recipe websites later.
 -- TODO: the ingredients and the steps can be in different categories.
 -- TODO: find the recipe type in the HTML. The only place where it seems to be is in the Google Analytics JS code, for instance:

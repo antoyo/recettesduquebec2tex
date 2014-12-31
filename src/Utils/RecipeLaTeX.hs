@@ -15,18 +15,32 @@
 
 {-# LANGUAGE NamedFieldPuns #-}
 
+{-|
+Module      : Utils.RecipeLaTeX
+Description : Util functions to convert recipes into LaTeX commands.
+Copyright   : © Antoni Boucher, 2014
+License     : GPL-3
+Maintener   : bouanto@zoho.com
+Stability   : experimental
+Portability : POSIX
+
+This module provides util functions to convert recipes into LaTeX commands.
+-}
+
 module Utils.RecipeLaTeX (recipeIndexToLaTeX, recipeToLaTeX) where
 
 import Data.String (fromString)
 import Text.LaTeX (LaTeXT_, comment)
 
 import Cookbook (cookingTime, ingredients, marinateTime, portions, preparationTime, recipe, steps, totalTime)
-import Utils.LaTeX (maybeLaTeX, stringsToLaTeX)
+import Utils.LaTeX (maybeLaTeX, stringsToLaTeXList)
 import Utils.Recipe (Recipe (Recipe, recipeCookingTime, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL))
 
+-- |Convert the recipe to a '\recipe{}' LaTeX command.
 recipeIndexToLaTeX :: Monad m => String -> Recipe -> LaTeXT_ m
 recipeIndexToLaTeX machineRecipeName (Recipe {recipeName, recipeType}) = recipe (fromString $ show recipeType) (fromString machineRecipeName) (fromString recipeName)
 
+-- |Convert a recipe into LaTeX.
 recipeToLaTeX :: Monad m => Recipe -> LaTeXT_ m
 recipeToLaTeX (Recipe {recipeURL, recipeCookingTime, recipeIngredients, recipeMarinateTime, recipePortions, recipePreparationTime, recipeSteps}) = do
     comment $ fromString $ "Source: " ++ recipeURL
@@ -35,5 +49,5 @@ recipeToLaTeX (Recipe {recipeURL, recipeCookingTime, recipeIngredients, recipeMa
     maybeLaTeX cookingTime recipeCookingTime
     totalTime
     maybeLaTeX portions recipePortions
-    ingredients $ stringsToLaTeX recipeIngredients
-    steps $ stringsToLaTeX recipeSteps
+    ingredients $ stringsToLaTeXList recipeIngredients
+    steps $ stringsToLaTeXList recipeSteps

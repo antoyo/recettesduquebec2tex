@@ -25,10 +25,10 @@ Portability : POSIX
 This module provides util functions.
 -}
 
-module Utils (machineName, trim) where
+module Utils (dropFirstWord, machineName, maybeRead, trim) where
 
 import Data.Char (isSpace, toLower, toUpper)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, listToMaybe)
 
 data Capitalization = ToUpper | ToLower
 
@@ -42,6 +42,10 @@ commonWords = [ "a"
               , "l"
               , "la"
               ]
+
+-- |Drop the first word (and the space after it) of the string.
+dropFirstWord :: String -> String
+dropFirstWord = tail . dropWhile (/= ' ')
 
 letters :: [(Char, Char)]
 letters = [ ('á', 'a')
@@ -80,6 +84,10 @@ machineName' _ (c:name)
     | c `elem` specialCharacters = machineName' ToUpper name
 machineName' ToUpper (n:name) = toUpper n : machineName' ToLower name
 machineName' ToLower (n:name) = toLower n : machineName' ToLower name
+
+-- |Try to read a string and return Nothing in case of failure.
+maybeRead :: (Read a) => String -> Maybe a
+maybeRead = fmap fst . listToMaybe . reads
 
 removeCommonWords :: String -> String
 removeCommonWords string = unwords $ filter (`notElem` commonWords) $ splitWords string

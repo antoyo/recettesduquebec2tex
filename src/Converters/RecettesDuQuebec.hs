@@ -29,42 +29,44 @@ This module converts the recipe from a DOM element and returns a LaTeX document.
 
 module Converters.RecettesDuQuebec (parseRecipe) where
 
+import Control.Applicative ((<$>))
+import Data.Maybe (maybeToList)
 import Text.XML.Cursor (Cursor)
 import Text.XML.Selector.TH (jq, queryT)
 
-import Utils.DOM (getAlt, getMaybeIntValue, getSrc, getValues)
+import Utils (dropFirstWord)
+import Utils.DOM (getAlt, getFirstWordAsInt, getSrc, getText, getTexts)
 import Utils.Recipe (Recipe (Recipe, recipeCookingTime, recipeImageURL, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL), RecipeType)
 
 getImageURL :: Cursor -> Maybe String
-getImageURL element =
+getImageURL element = do
     let image = queryT [jq| [itemprop="image"] |] element
-        alt = getAlt image
-    in
-    if alt == "Default Image"
-        then Nothing
-        else getSrc image
+    alt <- getAlt image
+    if alt /= "Default Image"
+        then getSrc image
+        else Nothing
 
 getCookingTime :: Cursor -> Maybe Int
-getCookingTime = getMaybeIntValue [jq| [itemprop="cookTime"] |]
+getCookingTime = getFirstWordAsInt [jq| [itemprop="cookTime"] |]
 
 getIngredients :: Cursor -> [String]
-getIngredients = getValues [jq| [itemprop="ingredients"] |]
+getIngredients = getTexts [jq| [itemprop="ingredients"] |]
 
 getMarinateTime :: Cursor -> Maybe Int
-getMarinateTime = getMaybeIntValue [jq| dd.marinate-time |]
+getMarinateTime = getFirstWordAsInt [jq| dd.marinate-time |]
 
 getPortions :: Cursor -> Maybe Int
-getPortions = getMaybeIntValue [jq| [itemprop="recipeYield"] |]
+getPortions = getFirstWordAsInt [jq| [itemprop="recipeYield"] |]
 
 getPreparationTime :: Cursor -> Maybe Int
-getPreparationTime = getMaybeIntValue [jq| [itemprop="prepTime"] |]
+getPreparationTime = getFirstWordAsInt [jq| [itemprop="prepTime"] |]
 
 getRecipeName :: Cursor -> String
-getRecipeName element = unwords $ drop 1 $ words name
-    where name = head $ getValues [jq| [itemprop="name"] |] element
+getRecipeName element = concat $ maybeToList $ dropFirstWord <$> name
+    where name = getText [jq| [itemprop="name"] |] element
 
 getSteps :: Cursor -> [String]
-getSteps = getValues [jq| div.step-detail p |]
+getSteps = getTexts [jq| div.step-detail p |]
 
 -- |Parse the recipe from the DOM element.
 parseRecipe :: Cursor -> String -> RecipeType -> Recipe
