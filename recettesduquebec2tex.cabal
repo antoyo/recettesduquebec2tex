@@ -29,6 +29,7 @@ executable recettesduquebec2tex
                      , HaTeX
                      , html-conduit
                      , http-conduit
+                     , network-uri
                      , text
                      , wl-pprint-extras
                      , xml-conduit
