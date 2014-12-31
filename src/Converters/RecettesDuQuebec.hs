@@ -30,13 +30,15 @@ This module converts the recipe from a DOM element and returns a LaTeX document.
 module Converters.RecettesDuQuebec (parseRecipe) where
 
 import Control.Applicative ((<$>))
+import Data.List ((\\))
 import Data.Maybe (maybeToList)
 import Text.XML.Cursor (Cursor)
 import Text.XML.Selector.TH (jq, queryT)
 
-import Utils (dropFirstWord)
-import Utils.DOM (getAlt, getFirstWordAsInt, getSrc, getText, getTexts)
-import Utils.Recipe (Recipe (Recipe, recipeCookingTime, recipeImageURL, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL), RecipeType)
+import Utils (capitalize, dropFirstWord, tailSafe, trim)
+import Utils.LaTeX (nodeToString)
+import Utils.DOM (getAlt, getClasses, getFirstWordAsInt, getSrc, getText)
+import Utils.Recipe (ListItem (Category, Item), Recipe (Recipe, recipeCookingTime, recipeImageURL, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL), RecipeType)
 
 getImageURL :: Cursor -> Maybe String
 getImageURL element = do
@@ -49,8 +51,8 @@ getImageURL element = do
 getCookingTime :: Cursor -> Maybe Int
 getCookingTime = getFirstWordAsInt [jq| [itemprop="cookTime"] |]
 
-getIngredients :: Cursor -> [String]
-getIngredients = getTexts [jq| [itemprop="ingredients"] |]
+getIngredients :: Cursor -> [ListItem]
+getIngredients = readIngredientList . queryT [jq| ul.ingredient-group li |]
 
 getMarinateTime :: Cursor -> Maybe Int
 getMarinateTime = getFirstWordAsInt [jq| dd.marinate-time |]
@@ -65,8 +67,8 @@ getRecipeName :: Cursor -> String
 getRecipeName element = concat $ maybeToList $ dropFirstWord <$> name
     where name = getText [jq| [itemprop="name"] |] element
 
-getSteps :: Cursor -> [String]
-getSteps = getTexts [jq| div.step-detail p |]
+getSteps :: Cursor -> [ListItem]
+getSteps = readStepList . queryT [jq| div.step-detail p |]
 
 -- |Parse the recipe from the DOM element.
 parseRecipe :: Cursor -> String -> RecipeType -> Recipe
@@ -82,3 +84,22 @@ parseRecipe element url recipeType =
            , recipeSteps = getSteps element
            , recipeType
            }
+
+readIngredientList :: [Cursor] -> [ListItem]
+readIngredientList = map readIngredientListItem
+
+readIngredientListItem :: Cursor -> ListItem
+readIngredientListItem item
+    | getClasses item == ["group-name"] = Category category
+    | otherwise = Item itemText
+    where itemText = nodeToString item
+          category = trim $ itemText \\ ":"
+
+readStepList :: [Cursor] -> [ListItem]
+readStepList [] = []
+readStepList (c:rest) =
+    if ':' `elem` itemText
+        then Category (trim category) : Item (capitalize $ trim $ tailSafe item) : readStepList rest
+        else Item itemText : readStepList rest
+    where itemText = nodeToString c
+          (category, item) = break (== ':') itemText

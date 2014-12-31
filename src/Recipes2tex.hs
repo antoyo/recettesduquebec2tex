@@ -13,12 +13,13 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
--- TODO: the ingredients and the steps can be in different categories.
+-- TODO: try to use Text instead of always converting to String.
 -- TODO: find the recipe type in the HTML. The only place where it seems to be is in the Google Analytics JS code, for instance:
 -- _gaq.push(['b._setCustomVar', 3, 'Cat3', "dessert", 3]);
 -- TODO: try to convert impure functions to pure functions.
 -- TODO: add unit test.
 -- TODO: fix common spelling mistakes (oeuf -> œuf).
+-- TODO: import explicitly every imported functions by writing their name in parentheses.
 
 {-# LANGUAGE DisambiguateRecordFields, NamedFieldPuns, OverloadedStrings #-}
 

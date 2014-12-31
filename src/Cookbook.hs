@@ -25,12 +25,16 @@ Portability : POSIX
 This module provides functions for the commands and environments of the cookbook LaTeX document class.
 -}
 
-module Cookbook (cookingTime, ingredients, marinateTime, portions, preparationTime, recipe, steps, totalTime) where
+module Cookbook (cookingPart, cookingTime, ingredients, marinateTime, portions, preparationTime, recipe, steps, totalTime) where
 
 import Text.LaTeX.Base.Class (LaTeXC, comm0, comm1, liftL)
 import Text.LaTeX.Base.Syntax (LaTeX (TeXEnv))
 
 import Utils.LaTeX (comm3)
+
+-- |Generate a 'cookingpart' command.
+cookingPart :: LaTeXC l => l -> l
+cookingPart = comm1 "cookingpart"
 
 -- |Generate a 'cookingtime' command.
 cookingTime :: LaTeXC l => l -> l

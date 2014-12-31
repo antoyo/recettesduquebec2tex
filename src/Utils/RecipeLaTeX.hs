@@ -29,12 +29,33 @@ This module provides util functions to convert recipes into LaTeX commands.
 
 module Utils.RecipeLaTeX (recipeIndexToLaTeX, recipeToLaTeX) where
 
+import Control.Monad (when)
+import Data.Monoid (mempty)
 import Data.String (fromString)
-import Text.LaTeX (LaTeXT_, comment)
+import Text.LaTeX (LaTeXT_, comment, item, lnbk)
 
-import Cookbook (cookingTime, ingredients, marinateTime, portions, preparationTime, recipe, steps, totalTime)
-import Utils.LaTeX (maybeLaTeX, stringsToLaTeXList)
-import Utils.Recipe (Recipe (Recipe, recipeCookingTime, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL))
+import Cookbook (cookingPart, cookingTime, ingredients, marinateTime, portions, preparationTime, recipe, steps, totalTime)
+import Utils.LaTeX (maybeLaTeX)
+import Utils.Recipe (ListItem (Category, Item), Recipe (Recipe, recipeCookingTime, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL))
+
+-- |Convert a ListItem to a LaTeX value.
+listItemToLaTeX :: (Monad m) => ListItem -> Bool -> LaTeXT_ m
+listItemToLaTeX (Category category) addLineBreak = do
+    when addLineBreak
+        lnbk
+    item $ Just mempty
+    cookingPart $ fromString category
+listItemToLaTeX (Item itemList) _ = do
+    item Nothing
+    fromString itemList
+
+-- |Convert a list of items to a LaTeX list of items.
+listItemToLaTeXList :: Monad m => [ListItem] -> LaTeXT_ m
+listItemToLaTeXList = listItemToLaTeXList' False
+    where listItemToLaTeXList' _ [] = mempty
+          listItemToLaTeXList' addLineBreak (i:is) = do
+              listItemToLaTeX i addLineBreak
+              listItemToLaTeXList' True is
 
 -- |Convert the recipe to a '\recipe{}' LaTeX command.
 recipeIndexToLaTeX :: Monad m => String -> Recipe -> LaTeXT_ m
@@ -49,5 +70,5 @@ recipeToLaTeX (Recipe {recipeURL, recipeCookingTime, recipeIngredients, recipeMa
     maybeLaTeX cookingTime recipeCookingTime
     totalTime
     maybeLaTeX portions recipePortions
-    ingredients $ stringsToLaTeXList recipeIngredients
-    steps $ stringsToLaTeXList recipeSteps
+    ingredients $ listItemToLaTeXList recipeIngredients
+    steps $ listItemToLaTeXList recipeSteps

@@ -13,7 +13,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE FlexibleInstances, NamedFieldPuns, TypeSynonymInstances #-}
 
 {-|
 Module      : Utils.LaTeX
@@ -27,14 +27,16 @@ Portability : POSIX
 This module provides util functions to use with HaTeX values.
 -}
 
-module Utils.LaTeX (comm3, maybeLaTeX, stringsToLaTeXList) where
+module Utils.LaTeX (comm3, maybeLaTeX, nodeToString) where
 
 import Data.Foldable (forM_)
-import Data.Monoid (mempty)
 import Data.String (fromString)
-import Text.LaTeX (LaTeXT_, item)
+import qualified Data.Text.Lazy as LazyText (unpack)
+import Text.LaTeX (LaTeXT_)
 import Text.LaTeX.Base.Class (LaTeXC, liftL3)
 import Text.LaTeX.Base.Syntax (LaTeX (TeXComm), TeXArg (FixArg))
+import Text.XML.Cursor (Cursor)
+import Text.XML.Scraping (innerText)
 
 -- |A three parameter command generator using the name of the command.
 comm3 :: LaTeXC l => String -> l -> l -> l -> l
@@ -44,10 +46,6 @@ comm3 str = liftL3 $ \l1 l2 l3 -> TeXComm str [FixArg l1, FixArg l2, FixArg l3]
 maybeLaTeX :: Monad m => (LaTeXT_ m -> LaTeXT_ m) -> Maybe Int -> LaTeXT_ m
 maybeLaTeX f maybeInt = forM_ maybeInt (f . fromString . show)
 
--- |Convert a list of strings to a LaTeX list of items.
-stringsToLaTeXList :: Monad m => [String] -> LaTeXT_ m
-stringsToLaTeXList [] = mempty
-stringsToLaTeXList (s:strings) = do
-    item Nothing
-    fromString s
-    stringsToLaTeXList strings
+-- |Get the inner text of a node element as a string.
+nodeToString :: Cursor -> String
+nodeToString = LazyText.unpack . innerText

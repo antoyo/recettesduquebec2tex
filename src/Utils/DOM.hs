@@ -25,7 +25,7 @@ Portability : POSIX
 This module fetches the recipe from program argument URL and output LaTeX code in one file.
 -}
 
-module Utils.DOM (getAlt, getAttribute, getFirstWord, getFirstWordAsInt, getSrc, getText, getTexts) where
+module Utils.DOM (getAlt, getAttribute, getClasses, getFirstWord, getFirstWordAsInt, getSrc, getText, getTexts) where
 
 import Control.Monad ((<=<), liftM)
 import qualified Data.Map as Map (lookup)
@@ -35,7 +35,7 @@ import qualified Data.Text as Text (unpack)
 import qualified Data.Text.Lazy as LazyText (unpack)
 import Text.XML (Element (elementAttributes), Node (NodeElement))
 import Text.XML.Cursor (Cursor, node)
-import Text.XML.Scraping (innerText)
+import Text.XML.Scraping (eclass, innerText)
 import Text.XML.Selector.TH (queryT)
 import Text.XML.Selector.Types (JQSelector)
 
@@ -52,6 +52,10 @@ getAttribute attributeName (c:_) = let (NodeElement nodeElement) = node c in
                                    case Map.lookup (fromString attributeName) (elementAttributes nodeElement) of
                                       Just value -> Just $ Text.unpack value
                                       Nothing -> Nothing
+
+-- |Return the style classes of the element.
+getClasses :: Cursor -> [String]
+getClasses = map Text.unpack . eclass . node
 
 -- |Get the first word of the first of the selected elements.
 getFirstWord :: [JQSelector] -> Cursor -> Maybe String

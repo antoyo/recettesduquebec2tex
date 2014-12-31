@@ -28,9 +28,9 @@ This module provides a pretty printer for HaTeX documents which outputs a human-
 module PrettyPrinter (prettyPrint) where
 
 import Data.Monoid (mconcat)
-import qualified Data.Text as Text
-import Text.LaTeX.Base.Syntax (LaTeX (TeXComm, TeXCommS, TeXComment, TeXEnv, TeXRaw, TeXSeq), TeXArg (FixArg))
-import Text.PrettyPrint.Free
+import qualified Data.Text as Text (unpack)
+import Text.LaTeX.Base.Syntax (LaTeX (TeXComm, TeXCommS, TeXComment, TeXEmpty, TeXEnv, TeXLineBreak, TeXRaw, TeXSeq), TeXArg (FixArg, OptArg))
+import Text.PrettyPrint.Free ((<>), Doc, backslash, braces, brackets, empty, indent, line, space, text)
 
 import Utils (trim)
 
@@ -40,19 +40,25 @@ prettyPrint latex = trim (show $ latex2Doc latex False) ++ "\n"
 
 latex2Doc :: LaTeX -> Bool -> Doc ()
 latex2Doc (TeXComm n []) _ = backslash <> text n <> text "{}" <> line <> line
-latex2Doc (TeXComm n args) _ = backslash <> text n <> mconcat (map latexArg2Doc args) <> line <> line
+latex2Doc (TeXComm "cookingpart" args) _ = backslash <> text "cookingpart" <> mconcat (map latexArg2Doc args) <> line
+latex2Doc (TeXComm "item" args@[_]) _ = backslash <> text "item" <> mconcat (map latexArg2Doc args) <> space
+latex2Doc (TeXComm n args) newLine = backslash <> text n <> mconcat (map latexArg2Doc args) <> line <> newLineOrEmpty newLine
 latex2Doc (TeXCommS n) newLine = backslash <> text n <> newLineOrEmpty newLine
 latex2Doc (TeXComment comment) _ = text "% " <> text (Text.unpack comment) <> line <> line
 latex2Doc (TeXEnv environment _ latex) _ =
     backslash <> text "begin" <> braces (text environment) <> line
         <> indent 4 (latex2Doc latex False) <> line
         <> backslash <> text "end" <> braces (text environment) <> line <> line
+latex2Doc TeXEmpty _ = empty
+latex2Doc (TeXLineBreak _ _) _ = text "\\\\" <> line
 latex2Doc (TeXRaw rawText) newLine = text (Text.unpack rawText) <> newLineOrEmpty newLine
 latex2Doc (TeXSeq latex1@(TeXCommS "item ") latex2@(TeXSeq _ _)) _ = latex2Doc latex1 False <> latex2Doc latex2 True
-latex2Doc (TeXSeq latex1 latex2) newLine = latex2Doc latex1 newLine <> latex2Doc latex2 False
+latex2Doc (TeXSeq latex1@(TeXCommS "item ") latex2) _ = latex2Doc latex1 False <> latex2Doc latex2 False
+latex2Doc (TeXSeq latex1 latex2) newLine = latex2Doc latex1 newLine <> latex2Doc latex2 True
 
 latexArg2Doc :: TeXArg -> Doc ()
 latexArg2Doc (FixArg arg) = braces $ latex2Doc arg False
+latexArg2Doc (OptArg arg) = brackets $ latex2Doc arg False
 
 newLineOrEmpty :: Bool -> Doc ()
 newLineOrEmpty newLine = if newLine then line else empty

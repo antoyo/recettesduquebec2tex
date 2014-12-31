@@ -25,18 +25,22 @@ Portability : POSIX
 This module provides util functions to use with recipes.
 -}
 
-module Utils.Recipe (Recipe (Recipe, recipeCookingTime, recipeImageURL, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL), RecipeType (Breakfasts, Desserts, MainDishes), readRecipeType) where
+module Utils.Recipe (ListItem (Category, Item), Recipe (Recipe, recipeCookingTime, recipeImageURL, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL), RecipeType (Breakfasts, Desserts, MainDishes), readRecipeType) where
+
+-- |Either category list item or a normal list item.
+data ListItem = Category String
+              | Item String
 
 -- |A recipe.
 data Recipe = Recipe { recipeName :: String
                      , recipeURL :: String
                      , recipeCookingTime :: Maybe Int
                      , recipeImageURL :: Maybe String
-                     , recipeIngredients :: [String]
+                     , recipeIngredients :: [ListItem]
                      , recipeMarinateTime :: Maybe Int
                      , recipePortions :: Maybe Int
                      , recipePreparationTime :: Maybe Int
-                     , recipeSteps :: [String]
+                     , recipeSteps :: [ListItem]
                      , recipeType :: RecipeType
                      }
 

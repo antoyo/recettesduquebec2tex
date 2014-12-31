@@ -25,12 +25,17 @@ Portability : POSIX
 This module provides util functions.
 -}
 
-module Utils (dropFirstWord, machineName, maybeRead, trim) where
+module Utils (capitalize, dropFirstWord, machineName, maybeRead, tailSafe, trim) where
 
 import Data.Char (isSpace, toLower, toUpper)
 import Data.Maybe (fromMaybe, listToMaybe)
 
 data Capitalization = ToUpper | ToLower
+
+-- |Return the same string with the first letter in uppercase.
+capitalize :: String -> String
+capitalize "" = ""
+capitalize (s:ss) = toUpper s : ss
 
 commonWords :: [String]
 commonWords = [ "a"
@@ -101,6 +106,7 @@ splitWords string = let (word, rest) = break (`elem` delimiters) string
                     in trim word : splitWords (tailSafe rest)
     where delimiters = "' "
 
+-- |Extract the elements after the head of a list or return the empty list if the argument is the empty list.
 tailSafe :: [a] -> [a]
 tailSafe [] = []
 tailSafe (_:xs) = xs
