@@ -11,11 +11,15 @@ Usage
 -----
 
 ```bash
-recettesduquebec2tex URL
+recettesduquebec2tex URL...
 ```
 
-For instance:
+Examples:
 
 ```bash
 recettesduquebec2tex http://www.recettes.qc.ca/recette/biscuits-sables-vanille-165747
+```
+
+```bash
+recettesduquebec2tex http://www.recettes.qc.ca/recette/biscuits-sables-vanille-165747 http://www.recettes.qc.ca/recette/gateau-aux-carottes-540
 ```
