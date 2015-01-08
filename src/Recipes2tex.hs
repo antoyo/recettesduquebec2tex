@@ -18,6 +18,7 @@
 -- _gaq.push(['b._setCustomVar', 3, 'Cat3', "dessert", 3]);
 -- TODO: try to convert impure functions to pure functions.
 -- TODO: add unit test.
+-- TODO: use Travis for Continuous Integration.
 -- TODO: fix common spelling mistakes (oeuf -> œuf).
 -- TODO: import explicitly every imported functions by writing their name in parentheses.
 
