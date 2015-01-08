@@ -10,7 +10,9 @@ To be used with my [recipe cookbook].
 Usage
 -----
 
+```bash
 recettesduquebec2tex URL
+```
 
 For instance:
 
