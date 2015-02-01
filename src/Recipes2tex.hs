@@ -13,6 +13,7 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+-- FIXME: issue parsing time in hours (1h 0 min, example Mousse aux fraises).
 -- TODO: try to use Text instead of always converting to String.
 -- TODO: find the recipe type in the HTML. The only place where it seems to be is in the Google Analytics JS code, for instance:
 -- _gaq.push(['b._setCustomVar', 3, 'Cat3', "dessert", 3]);
@@ -22,7 +23,9 @@
 -- TODO: fix common spelling mistakes (oeuf -> œuf).
 -- TODO: import explicitly every imported functions by writing their name in parentheses.
 
-{-# LANGUAGE DisambiguateRecordFields, NamedFieldPuns, OverloadedStrings #-}
+{-# LANGUAGE DisambiguateRecordFields #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-|
 Module      : Recipes2tex
