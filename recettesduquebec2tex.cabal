@@ -19,7 +19,10 @@ source-repository    head
 executable recettesduquebec2tex
   main-is:             Recipes2tex.hs
   -- other-modules:       
-  other-extensions:    DisambiguateRecordFields, NamedFieldPuns, OverloadedStrings, QuasiQuotes
+  other-extensions:    DisambiguateRecordFields
+                     , NamedFieldPuns
+                     , OverloadedStrings
+                     , QuasiQuotes
   build-depends:       base >=4.7 && <4.8
                      , bytestring
                      , containers

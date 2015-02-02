@@ -29,24 +29,29 @@ Portability : POSIX
 This module provides util functions to use with HaTeX values.
 -}
 
-module Utils.LaTeX (comm3, maybeLaTeX, nodeToString) where
+module Utils.LaTeX (comm1Opt1, comm3, maybeLaTeX, nodeToString) where
 
 import Data.Foldable (forM_)
 import Data.String (fromString)
 import qualified Data.Text.Lazy as LazyText (unpack)
 import Text.LaTeX (LaTeXT_)
-import Text.LaTeX.Base.Class (LaTeXC, liftL3)
-import Text.LaTeX.Base.Syntax (LaTeX (TeXComm), TeXArg (FixArg))
+import Text.LaTeX.Base.Class (LaTeXC, comm1, liftL2, liftL3)
+import Text.LaTeX.Base.Syntax (LaTeX (TeXComm), TeXArg (FixArg, OptArg))
 import Text.XML.Cursor (Cursor)
 import Text.XML.Scraping (innerText)
+
+-- |A command generator with two parameters, the first one being optional, using the name of the command.
+comm1Opt1 :: LaTeXC l => String -> Maybe l -> l -> l
+comm1Opt1 str Nothing = comm1 str
+comm1Opt1 str (Just value1) = (liftL2 $ \l1 l2 -> TeXComm str [OptArg l1, FixArg l2]) value1
 
 -- |A three parameter command generator using the name of the command.
 comm3 :: LaTeXC l => String -> l -> l -> l -> l
 comm3 str = liftL3 $ \l1 l2 l3 -> TeXComm str [FixArg l1, FixArg l2, FixArg l3]
 
--- |Convert a possibly null integer to LaTeX using the LaTeX command of the first argument.
-maybeLaTeX :: Monad m => (LaTeXT_ m -> LaTeXT_ m) -> Maybe Int -> LaTeXT_ m
-maybeLaTeX f maybeInt = forM_ maybeInt (f . fromString . show)
+-- |Convert a possibly null showable value to LaTeX using the LaTeX command of the first argument.
+maybeLaTeX :: (Monad m, Show a) => (LaTeXT_ m -> LaTeXT_ m) -> Maybe a -> LaTeXT_ m
+maybeLaTeX f value = forM_ value (f . fromString . show)
 
 -- |Get the inner text of a node element as a string.
 nodeToString :: Cursor -> String

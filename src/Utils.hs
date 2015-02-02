@@ -25,9 +25,9 @@ Portability : POSIX
 This module provides util functions.
 -}
 
-module Utils (capitalize, dropFirstWord, machineName, maybeRead, tailSafe, trim) where
+module Utils (capitalize, dropFirstWord, getNumbers, machineName, maybeRead, tailSafe, trim) where
 
-import Data.Char (isSpace, toLower, toUpper)
+import Data.Char (isDigit, isSpace, toLower, toUpper)
 import Data.Maybe (fromMaybe, listToMaybe)
 
 data Capitalization = ToUpper | ToLower
@@ -51,6 +51,13 @@ commonWords = [ "a"
 -- |Drop the first word (and the space after it) of the string.
 dropFirstWord :: String -> String
 dropFirstWord = tail . dropWhile (/= ' ')
+
+-- |Get all the numbers in a string. "1h 10 min" returns [1, 10].
+getNumbers :: String -> [Int]
+getNumbers "" = []
+getNumbers string = if null start then [] else read number : getNumbers rest
+    where start = dropWhile (not . isDigit) string
+          (number, rest) = span isDigit start
 
 letters :: [(Char, Char)]
 letters = [ ('á', 'a')

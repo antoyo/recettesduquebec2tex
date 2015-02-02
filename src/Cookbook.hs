@@ -30,31 +30,31 @@ module Cookbook (cookingPart, cookingTime, ingredients, marinateTime, portions, 
 import Text.LaTeX.Base.Class (LaTeXC, comm0, comm1, liftL)
 import Text.LaTeX.Base.Syntax (LaTeX (TeXEnv))
 
-import Utils.LaTeX (comm3)
+import Utils.LaTeX (comm1Opt1, comm3)
 
 -- |Generate a 'cookingpart' command.
 cookingPart :: LaTeXC l => l -> l
 cookingPart = comm1 "cookingpart"
 
 -- |Generate a 'cookingtime' command.
-cookingTime :: LaTeXC l => l -> l
-cookingTime = comm1 "cookingtime"
+cookingTime :: LaTeXC l => Maybe l -> l -> l
+cookingTime = comm1Opt1 "cookingtime"
 
 -- |Generate an 'ingredients' environment.
 ingredients :: LaTeXC l => l -> l
 ingredients = liftL $ TeXEnv "ingredients" []
 
 -- |Generate a 'marinatetime' command.
-marinateTime :: LaTeXC l => l -> l
-marinateTime = comm1 "macerationtime"
+marinateTime :: LaTeXC l => Maybe l -> l -> l
+marinateTime = comm1Opt1 "macerationtime"
 
 -- |Generate a 'portions' command.
 portions :: LaTeXC l => l -> l
 portions = comm1 "portions"
 
 -- |Generate a 'preparationtime' command.
-preparationTime :: LaTeXC l => l -> l
-preparationTime = comm1 "preparationtime"
+preparationTime :: LaTeXC l => Maybe l -> l -> l
+preparationTime = comm1Opt1 "preparationtime"
 
 -- |Generate a 'recipe' command.
 recipe :: LaTeXC l => l -> l -> l -> l

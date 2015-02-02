@@ -36,10 +36,10 @@ import Data.Maybe (maybeToList)
 import Text.XML.Cursor (Cursor)
 import Text.XML.Selector.TH (jq, queryT)
 
-import Utils (capitalize, dropFirstWord, tailSafe, trim)
+import Utils (capitalize, dropFirstWord, getNumbers, tailSafe, trim)
 import Utils.LaTeX (nodeToString)
 import Utils.DOM (getAlt, getClasses, getFirstWordAsInt, getSrc, getText)
-import Utils.Recipe (ListItem (Category, Item), Recipe (Recipe, recipeCookingTime, recipeImageURL, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL), RecipeType)
+import Utils.Recipe (ListItem (Category, Item), Recipe (Recipe, recipeCookingTime, recipeImageURL, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL), RecipeTime (RecipeTime, recipeTimeHours, recipeTimeMinutes), RecipeType)
 
 getImageURL :: Cursor -> Maybe String
 getImageURL element = do
@@ -49,20 +49,20 @@ getImageURL element = do
         then getSrc image
         else Nothing
 
-getCookingTime :: Cursor -> Maybe Int
-getCookingTime = getFirstWordAsInt [jq| [itemprop="cookTime"] |]
+getCookingTime :: Cursor -> Maybe RecipeTime
+getCookingTime = parseTime . getText [jq| [itemprop="cookTime"] |]
 
 getIngredients :: Cursor -> [ListItem]
 getIngredients = readIngredientList . queryT [jq| ul.ingredient-group li |]
 
-getMarinateTime :: Cursor -> Maybe Int
-getMarinateTime = getFirstWordAsInt [jq| dd.marinate-time |]
+getMarinateTime :: Cursor -> Maybe RecipeTime
+getMarinateTime = parseTime . getText [jq| dd.marinate-time |]
 
 getPortions :: Cursor -> Maybe Int
 getPortions = getFirstWordAsInt [jq| [itemprop="recipeYield"] |]
 
-getPreparationTime :: Cursor -> Maybe Int
-getPreparationTime = getFirstWordAsInt [jq| [itemprop="prepTime"] |]
+getPreparationTime :: Cursor -> Maybe RecipeTime
+getPreparationTime = parseTime . getText [jq| [itemprop="prepTime"] |]
 
 getRecipeName :: Cursor -> String
 getRecipeName element = concat $ maybeToList $ dropFirstWord <$> name
@@ -85,6 +85,13 @@ parseRecipe element url recipeType =
            , recipeSteps = getSteps element
            , recipeType
            }
+
+parseTime :: Maybe String -> Maybe RecipeTime
+parseTime (Just string) = case getNumbers string of
+                            [minutes] -> Just RecipeTime { recipeTimeHours = 0, recipeTimeMinutes = minutes }
+                            [hours, minutes] -> Just RecipeTime { recipeTimeHours = hours, recipeTimeMinutes = minutes }
+                            _ -> Nothing
+parseTime Nothing = Nothing
 
 readIngredientList :: [Cursor] -> [ListItem]
 readIngredientList = map readIngredientListItem

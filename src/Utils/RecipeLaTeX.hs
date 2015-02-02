@@ -36,7 +36,7 @@ import Text.LaTeX (LaTeXT_, comment, item, lnbk)
 
 import Cookbook (cookingPart, cookingTime, ingredients, marinateTime, portions, preparationTime, recipe, steps, totalTime)
 import Utils.LaTeX (maybeLaTeX)
-import Utils.Recipe (ListItem (Category, Item), Recipe (Recipe, recipeCookingTime, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL))
+import Utils.Recipe (ListItem (Category, Item), Recipe (Recipe, recipeCookingTime, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL), RecipeTime (RecipeTime, recipeTimeHours, recipeTimeMinutes))
 
 -- |Convert a ListItem to a LaTeX value.
 listItemToLaTeX :: (Monad m) => ListItem -> Bool -> LaTeXT_ m
@@ -61,13 +61,19 @@ listItemToLaTeXList = listItemToLaTeXList' False
 recipeIndexToLaTeX :: Monad m => String -> Recipe -> LaTeXT_ m
 recipeIndexToLaTeX machineRecipeName (Recipe {recipeName, recipeType}) = recipe (fromString $ show recipeType) (fromString machineRecipeName) (fromString recipeName)
 
+recipeTimeToLaTeX :: Monad m => (Maybe (LaTeXT_ m) -> LaTeXT_ m -> LaTeXT_ m) -> Maybe RecipeTime -> LaTeXT_ m
+recipeTimeToLaTeX _ Nothing = mempty
+recipeTimeToLaTeX command (Just (RecipeTime { recipeTimeHours, recipeTimeMinutes }))
+    | recipeTimeHours == 0 = command Nothing (fromString $ show recipeTimeMinutes)
+    | otherwise = command (Just $ fromString $ show recipeTimeHours) (fromString $ show recipeTimeMinutes)
+
 -- |Convert a recipe into LaTeX.
 recipeToLaTeX :: Monad m => Recipe -> LaTeXT_ m
 recipeToLaTeX (Recipe {recipeURL, recipeCookingTime, recipeIngredients, recipeMarinateTime, recipePortions, recipePreparationTime, recipeSteps}) = do
     comment $ fromString $ "Source: " ++ recipeURL
-    maybeLaTeX preparationTime recipePreparationTime
-    maybeLaTeX marinateTime recipeMarinateTime
-    maybeLaTeX cookingTime recipeCookingTime
+    recipeTimeToLaTeX preparationTime recipePreparationTime
+    recipeTimeToLaTeX marinateTime recipeMarinateTime
+    recipeTimeToLaTeX cookingTime recipeCookingTime
     totalTime
     maybeLaTeX portions recipePortions
     ingredients $ listItemToLaTeXList recipeIngredients
