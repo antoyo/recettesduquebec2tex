@@ -13,6 +13,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+{-# LANGUAGE OverloadedStrings #-}
+
 {-|
 Module      : Utils.DOM
 Description : Provides various util functions to fetch values in a DOM element.
@@ -25,55 +27,41 @@ Portability : POSIX
 This module fetches the recipe from program argument URL and output LaTeX code in one file.
 -}
 
-module Utils.DOM (getAlt, getAttribute, getClasses, getFirstWord, getFirstWordAsInt, getSrc, getText, getTexts) where
+module Utils.DOM (getAlt, getAttribute, getClasses, getSrc, getText, getTexts) where
 
-import Control.Monad ((<=<), liftM)
 import qualified Data.Map as Map (lookup)
 import Data.Maybe (listToMaybe)
-import Data.String (fromString)
-import qualified Data.Text as Text (unpack)
-import qualified Data.Text.Lazy as LazyText (unpack)
-import Text.XML (Element (elementAttributes), Node (NodeElement))
+import Data.Text as Text (Text)
+import Data.Text.Lazy (toStrict)
+import Text.XML (Element (elementAttributes), Name (Name), Node (NodeElement))
 import Text.XML.Cursor (Cursor, node)
 import Text.XML.Scraping (eclass, innerText)
 import Text.XML.Selector.TH (queryT)
 import Text.XML.Selector.Types (JQSelector)
 
-import Utils (maybeRead)
-
 -- |Get the alt attribute of the element.
-getAlt :: [Cursor] -> Maybe String
+getAlt :: [Cursor] -> Maybe Text
 getAlt = getAttribute "alt"
 
 -- |Get an element attribute by name.
-getAttribute :: String -> [Cursor] -> Maybe String
+getAttribute :: Text -> [Cursor] -> Maybe Text
 getAttribute _ [] = Nothing
 getAttribute attributeName (c:_) = let (NodeElement nodeElement) = node c in
-                                   case Map.lookup (fromString attributeName) (elementAttributes nodeElement) of
-                                      Just value -> Just $ Text.unpack value
-                                      Nothing -> Nothing
+                                   Map.lookup (Name attributeName Nothing Nothing) (elementAttributes nodeElement)
 
 -- |Return the style classes of the element.
-getClasses :: Cursor -> [String]
-getClasses = map Text.unpack . eclass . node
-
--- |Get the first word of the first of the selected elements.
-getFirstWord :: [JQSelector] -> Cursor -> Maybe String
-getFirstWord selector = liftM (takeWhile (/= ' ')) . getText selector
-
--- |Get the first word of the first of the selected elements as an integer.
-getFirstWordAsInt :: [JQSelector] -> Cursor -> Maybe Int
-getFirstWordAsInt selector = maybeRead <=< getFirstWord selector
+getClasses :: Cursor -> [Text]
+getClasses = eclass . node
 
 -- |Get the src attribute of the element.
-getSrc :: [Cursor] -> Maybe String
+getSrc :: [Cursor] -> Maybe Text
 getSrc = getAttribute "src"
 
 -- |Get the text of the first element of the selection.
-getText :: [JQSelector] -> Cursor -> Maybe String
+getText :: [JQSelector] -> Cursor -> Maybe Text
 getText selector element = listToMaybe $ getTexts selector element
 
 -- |Get a list of texts from a selection of elements.
-getTexts :: [JQSelector] -> Cursor -> [String]
-getTexts selector element = map (LazyText.unpack . innerText) matches
+getTexts :: [JQSelector] -> Cursor -> [Text]
+getTexts selector element = map (toStrict . innerText) matches
     where matches = queryT selector element

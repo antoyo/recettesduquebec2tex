@@ -14,6 +14,7 @@
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
 
 {-|
@@ -31,17 +32,19 @@ This module converts the recipe from a DOM element and returns a LaTeX document.
 module Converters.RecettesDuQuebec (parseRecipe) where
 
 import Control.Applicative ((<$>))
-import Data.List ((\\))
+import Control.Monad ((>=>))
 import Data.Maybe (maybeToList)
+import Data.Text (Text)
+import qualified Data.Text as Text (breakOn, concat, filter, isInfixOf, strip, tail)
 import Text.XML.Cursor (Cursor)
 import Text.XML.Selector.TH (jq, queryT)
 
-import Utils (capitalize, dropFirstWord, getNumbers, tailSafe, trim)
-import Utils.LaTeX (nodeToString)
-import Utils.DOM (getAlt, getClasses, getFirstWordAsInt, getSrc, getText)
+import Utils (capitalize, dropFirstWord, getNumber, getNumbers)
+import Utils.LaTeX (nodeToText)
+import Utils.DOM (getAlt, getClasses, getSrc, getText)
 import Utils.Recipe (ListItem (Category, Item), Recipe (Recipe, recipeCookingTime, recipeImageURL, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL), RecipeTime (RecipeTime, recipeTimeHours, recipeTimeMinutes), RecipeType)
 
-getImageURL :: Cursor -> Maybe String
+getImageURL :: Cursor -> Maybe Text
 getImageURL element = do
     let image = queryT [jq| [itemprop="image"] |] element
     alt <- getAlt image
@@ -59,13 +62,14 @@ getMarinateTime :: Cursor -> Maybe RecipeTime
 getMarinateTime = parseTime . getText [jq| dd.marinate-time |]
 
 getPortions :: Cursor -> Maybe Int
-getPortions = getFirstWordAsInt [jq| [itemprop="recipeYield"] |]
+getPortions = getText [jq| [itemprop="recipeYield"] |] >=>
+    getNumber
 
 getPreparationTime :: Cursor -> Maybe RecipeTime
 getPreparationTime = parseTime . getText [jq| [itemprop="prepTime"] |]
 
-getRecipeName :: Cursor -> String
-getRecipeName element = concat $ maybeToList $ dropFirstWord <$> name
+getRecipeName :: Cursor -> Text
+getRecipeName element = Text.concat $ maybeToList $ dropFirstWord <$> name
     where name = getText [jq| [itemprop="name"] |] element
 
 getSteps :: Cursor -> [ListItem]
@@ -86,7 +90,7 @@ parseRecipe element url recipeType =
            , recipeType
            }
 
-parseTime :: Maybe String -> Maybe RecipeTime
+parseTime :: Maybe Text -> Maybe RecipeTime
 parseTime (Just string) = case getNumbers string of
                             [minutes] -> Just RecipeTime { recipeTimeHours = 0, recipeTimeMinutes = minutes }
                             [hours, minutes] -> Just RecipeTime { recipeTimeHours = hours, recipeTimeMinutes = minutes }
@@ -100,14 +104,14 @@ readIngredientListItem :: Cursor -> ListItem
 readIngredientListItem item
     | getClasses item == ["group-name"] = Category category
     | otherwise = Item itemText
-    where itemText = nodeToString item
-          category = trim $ itemText \\ ":"
+    where itemText = nodeToText item
+          category = Text.strip $ Text.filter (/= ':') itemText
 
 readStepList :: [Cursor] -> [ListItem]
 readStepList [] = []
 readStepList (c:rest) =
-    if ':' `elem` itemText
-        then Category (trim category) : Item (capitalize $ trim $ tailSafe item) : readStepList rest
+    if ":" `Text.isInfixOf` itemText
+        then Category (Text.strip category) : Item (capitalize $ Text.strip $ Text.tail item) : readStepList rest
         else Item itemText : readStepList rest
-    where itemText = nodeToString c
-          (category, item) = break (== ':') itemText
+    where itemText = nodeToText c
+          (category, item) = Text.breakOn ":" itemText

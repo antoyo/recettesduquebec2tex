@@ -13,13 +13,15 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
--- TODO: try to use Text instead of always converting to String.
+-- TODO: make sure the usage on the raw function does not cause issue.
 -- TODO: find the recipe type in the HTML. The only place where it seems to be is in the Google Analytics JS code, for instance:
 -- _gaq.push(['b._setCustomVar', 3, 'Cat3', "dessert", 3]);
 -- TODO: try to convert impure functions to pure functions.
 -- TODO: add unit test.
+-- TODO: parse time with days.
 -- TODO: use Travis for Continuous Integration.
 -- TODO: fix common spelling mistakes (oeuf -> œuf).
+-- TODO: delete unused functions.
 -- TODO: import explicitly every imported functions by writing their name in parentheses.
 
 {-# LANGUAGE DisambiguateRecordFields #-}
@@ -44,6 +46,8 @@ import Control.Applicative ((<$>))
 import Control.Monad (forM_)
 import qualified Data.ByteString.Lazy as ByteString (writeFile)
 import Data.Maybe (fromMaybe)
+import Data.Text (Text)
+import qualified Data.Text as Text (unpack)
 import Network.HTTP.Conduit (simpleHttp)
 import Network.URI (parseURI, uriAuthority, uriRegName)
 import System.Directory (createDirectoryIfMissing)
@@ -61,7 +65,7 @@ import Utils.RecipeLaTeX (recipeIndexToLaTeX, recipeToLaTeX)
 
 data RecipeFiles = RecipeFiles { recipeFile :: String
                                , recipeIndex :: String
-                               , recipeMachineName :: String
+                               , recipeMachineName :: Text
                                }
 
 urlToConverter :: [(String, Cursor -> String -> RecipeType -> Recipe)]
@@ -97,18 +101,18 @@ doIO :: RecipeType -> RecipeFiles -> IO ()
 doIO recipeType recipeFiles = do
     let RecipeFiles { recipeFile, recipeIndex, recipeMachineName } = recipeFiles
         directoryName = show recipeType
-        recipeFileName = directoryName </> recipeMachineName <.> "tex"
+        recipeFileName = directoryName </> Text.unpack recipeMachineName <.> "tex"
     putStrLn "Add this line in recipes.tex:"
     putStrLn recipeIndex
     createDirectoryIfMissing False directoryName
     writeFile recipeFileName recipeFile
     putStrLn $ "Recipe written to " ++ recipeFileName ++ "."
 
-downloadImage :: Maybe String -> RecipeType -> RecipeFiles -> IO ()
+downloadImage :: Maybe Text -> RecipeType -> RecipeFiles -> IO ()
 downloadImage Nothing _ _ = return ()
 downloadImage (Just imageURL) recipeType (RecipeFiles { recipeMachineName }) =
-    simpleHttp imageURL >>=
-        ByteString.writeFile (show recipeType </> recipeMachineName <.> "jpg")
+    simpleHttp (Text.unpack imageURL) >>=
+        ByteString.writeFile (show recipeType </> Text.unpack recipeMachineName <.> "jpg")
 
 getRecipeFiles :: Recipe -> RecipeFiles
 getRecipeFiles recipe@(Recipe {recipeName}) =

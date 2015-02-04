@@ -13,6 +13,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+{-# LANGUAGE OverloadedStrings #-}
+
 {-|
 Module      : Utils
 Description : Util functions.
@@ -25,19 +27,24 @@ Portability : POSIX
 This module provides util functions.
 -}
 
-module Utils (capitalize, dropFirstWord, getNumbers, machineName, maybeRead, tailSafe, trim) where
+module Utils (capitalize, dropFirstWord, getNumber, getNumbers, machineName, tailSafe) where
 
-import Data.Char (isDigit, isSpace, toLower, toUpper)
-import Data.Maybe (fromMaybe, listToMaybe)
-
-data Capitalization = ToUpper | ToLower
+import Data.Char (isDigit, toLower)
+import Data.Maybe (fromMaybe)
+import Data.Either.Combinators (fromRight', rightToMaybe)
+import Data.Text (Text)
+import qualified Data.Text as Text (append, concat, drop, dropWhile, filter, map, null, span, split, tail, take, toLower, toTitle, toUpper, unwords, words)
+import Data.Text.Read (decimal)
 
 -- |Return the same string with the first letter in uppercase.
-capitalize :: String -> String
-capitalize "" = ""
-capitalize (s:ss) = toUpper s : ss
+capitalize :: Text -> Text
+capitalize = changeFirstLetter Text.toUpper
 
-commonWords :: [String]
+changeFirstLetter :: (Text -> Text) -> Text -> Text
+changeFirstLetter _ "" = ""
+changeFirstLetter f text = f (Text.take 1 text) `Text.append` Text.drop 1 text
+
+commonWords :: [Text]
 commonWords = [ "a"
               , "au"
               , "aux"
@@ -49,15 +56,22 @@ commonWords = [ "a"
               ]
 
 -- |Drop the first word (and the space after it) of the string.
-dropFirstWord :: String -> String
-dropFirstWord = tail . dropWhile (/= ' ')
+dropFirstWord :: Text -> Text
+dropFirstWord = Text.tail . Text.dropWhile (/= ' ')
+
+-- |Get a number from a text.
+getNumber :: Text -> Maybe Int
+getNumber text = do
+    number <- rightToMaybe $ decimal text
+    return $ fst number
 
 -- |Get all the numbers in a string. "1h 10 min" returns [1, 10].
-getNumbers :: String -> [Int]
-getNumbers "" = []
-getNumbers string = if null start then [] else read number : getNumbers rest
-    where start = dropWhile (not . isDigit) string
-          (number, rest) = span isDigit start
+getNumbers :: Text -> [Int]
+getNumbers string
+    | Text.null string || Text.null start = []
+    | otherwise = fst (fromRight' (decimal number)) : getNumbers rest
+    where start = Text.dropWhile (not . isDigit) string
+          (number, rest) = Text.span isDigit start
 
 letters :: [(Char, Char)]
 letters = [ ('á', 'a')
@@ -82,48 +96,36 @@ letters = [ ('á', 'a')
           , ('ü', 'u')
           ]
 
+lowerFirstLetter :: Text -> Text
+lowerFirstLetter = changeFirstLetter Text.toLower
+
 -- |Generate a machine name of a string.
 --
 -- Every special character/word will be replaced or removed.
 --
 -- > machineName "l'autre nom de la machine" = "autreNomMachine"
-machineName :: String -> String
-machineName = machineName' ToLower . removeCommonWords . unaccentuate
+machineName :: Text -> Text
+machineName = lowerFirstLetter . Text.concat . Text.words . Text.toTitle . removeSpecialCharacters . removeCommonWords . unaccentuate
 
-machineName' :: Capitalization -> String -> String
-machineName' _ "" = ""
-machineName' _ (c:name)
-    | c `elem` specialCharacters = machineName' ToUpper name
-machineName' ToUpper (n:name) = toUpper n : machineName' ToLower name
-machineName' ToLower (n:name) = toLower n : machineName' ToLower name
+removeCommonWords :: Text -> Text
+removeCommonWords string = Text.unwords $ filter (`notElem` commonWords) $ splitWords string
 
--- |Try to read a string and return Nothing in case of failure.
-maybeRead :: (Read a) => String -> Maybe a
-maybeRead = fmap fst . listToMaybe . reads
-
-removeCommonWords :: String -> String
-removeCommonWords string = unwords $ filter (`notElem` commonWords) $ splitWords string
+removeSpecialCharacters :: Text -> Text
+removeSpecialCharacters = Text.filter (`notElem` specialCharacters)
 
 specialCharacters :: String
-specialCharacters = "- '()"
+specialCharacters = "-'()"
 
-splitWords :: String -> [String]
-splitWords "" = []
-splitWords string = let (word, rest) = break (`elem` delimiters) string
-                    in trim word : splitWords (tailSafe rest)
-    where delimiters = "' "
+splitWords :: Text -> [Text]
+splitWords = Text.split (`elem` "' ")
 
 -- |Extract the elements after the head of a list or return the empty list if the argument is the empty list.
 tailSafe :: [a] -> [a]
 tailSafe [] = []
 tailSafe (_:xs) = xs
 
--- |Remove the whitespaces at each end of a string.
-trim :: String -> String
-trim = reverse . dropWhile isSpace . reverse . dropWhile isSpace
-
-unaccentuate :: String -> String
-unaccentuate = map possiblyUnaccentuate
+unaccentuate :: Text -> Text
+unaccentuate = Text.map possiblyUnaccentuate
     where possiblyUnaccentuate l = fromMaybe l $ unaccentuateLetter l
 
 unaccentuateLetter :: Char -> Maybe Char

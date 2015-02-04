@@ -28,6 +28,7 @@ executable recettesduquebec2tex
                      , containers
                      , directory
                      , dom-selector
+                     , either
                      , filepath
                      , HaTeX
                      , html-conduit

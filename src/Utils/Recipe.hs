@@ -27,15 +27,17 @@ This module provides util functions to use with recipes.
 
 module Utils.Recipe (ListItem (Category, Item), Recipe (Recipe, recipeCookingTime, recipeImageURL, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL), RecipeTime (RecipeTime, recipeTimeHours, recipeTimeMinutes), RecipeType (Breakfasts, Desserts, MainDishes), readRecipeType) where
 
+import Data.Text (Text)
+
 -- |Either category list item or a normal list item.
-data ListItem = Category String
-              | Item String
+data ListItem = Category Text
+              | Item Text
 
 -- |A recipe.
-data Recipe = Recipe { recipeName :: String
+data Recipe = Recipe { recipeName :: Text
                      , recipeURL :: String
                      , recipeCookingTime :: Maybe RecipeTime
-                     , recipeImageURL :: Maybe String
+                     , recipeImageURL :: Maybe Text
                      , recipeIngredients :: [ListItem]
                      , recipeMarinateTime :: Maybe RecipeTime
                      , recipePortions :: Maybe Int

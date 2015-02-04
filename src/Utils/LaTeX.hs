@@ -29,11 +29,12 @@ Portability : POSIX
 This module provides util functions to use with HaTeX values.
 -}
 
-module Utils.LaTeX (comm1Opt1, comm3, maybeLaTeX, nodeToString) where
+module Utils.LaTeX (comm1Opt1, comm3, maybeLaTeX, nodeToText, showLaTeX) where
 
 import Data.Foldable (forM_)
 import Data.String (fromString)
-import qualified Data.Text.Lazy as LazyText (unpack)
+import Data.Text (Text)
+import qualified Data.Text.Lazy as LazyText (toStrict)
 import Text.LaTeX (LaTeXT_)
 import Text.LaTeX.Base.Class (LaTeXC, comm1, liftL2, liftL3)
 import Text.LaTeX.Base.Syntax (LaTeX (TeXComm), TeXArg (FixArg, OptArg))
@@ -51,8 +52,12 @@ comm3 str = liftL3 $ \l1 l2 l3 -> TeXComm str [FixArg l1, FixArg l2, FixArg l3]
 
 -- |Convert a possibly null showable value to LaTeX using the LaTeX command of the first argument.
 maybeLaTeX :: (Monad m, Show a) => (LaTeXT_ m -> LaTeXT_ m) -> Maybe a -> LaTeXT_ m
-maybeLaTeX f value = forM_ value (f . fromString . show)
+maybeLaTeX f value = forM_ value (f . showLaTeX)
 
 -- |Get the inner text of a node element as a string.
-nodeToString :: Cursor -> String
-nodeToString = LazyText.unpack . innerText
+nodeToText :: Cursor -> Text
+nodeToText = LazyText.toStrict . innerText
+
+-- |Convert a showable value to a LaTeX value.
+showLaTeX :: (LaTeXC l, Show s) => s -> l
+showLaTeX = fromString . show
