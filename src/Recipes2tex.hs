@@ -13,9 +13,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
--- TODO: find the recipe type in the HTML. The only place where it seems to be is in the Google Analytics JS code, for instance:
--- _gaq.push(['b._setCustomVar', 3, 'Cat3', "dessert", 3]);
--- TODO: try to convert impure functions to pure functions.
 -- TODO: add unit test.
 -- TODO: parse time with days.
 -- TODO: use Travis for Continuous Integration.
@@ -71,41 +68,34 @@ urlToConverter :: [(String, Cursor -> String -> Recipe)]
 urlToConverter = [ ("www.recettes.qc.ca", RecettesDuQuebec.parseRecipe)
                  ]
 
-convertRecipe :: String -> IO ()
-convertRecipe url = do
-    root <- (fromDocument . parseLBS) <$> simpleHttp url
-    let host = getUrlHost url
-        maybeParser = lookup host urlToConverter
-        parser = fromMaybe (snd $ head urlToConverter) maybeParser
-        recipe = parser root url
-        recipeFiles = getRecipeFiles recipe
-    doIO (recipeType recipe) recipeFiles
-    downloadImage (recipeImageURL recipe) (recipeType recipe) recipeFiles
+convertRecipe :: String -> Cursor -> (Recipe, RecipeFiles)
+convertRecipe url root = (recipe, recipeFiles)
+        where host = getUrlHost url
+              maybeParser = lookup host urlToConverter
+              parser = fromMaybe (snd $ head urlToConverter) maybeParser
+              recipe = parser root url
+              recipeFiles = createRecipeFiles recipe
 
-doIO :: RecipeType -> RecipeFiles -> IO ()
-doIO recipeType recipeFiles = do
-    let RecipeFiles { recipeFile, recipeIndex, recipeMachineName } = recipeFiles
-        directoryName = show recipeType
-        recipeFileName = directoryName </> Text.unpack recipeMachineName <.> "tex"
-    putStrLn "Add this line in recipes.tex:"
-    putStrLn recipeIndex
-    createDirectoryIfMissing False directoryName
-    writeFile recipeFileName recipeFile
-    putStrLn $ "Recipe written to " ++ recipeFileName ++ "."
+createRecipeFiles :: Recipe -> RecipeFiles
+createRecipeFiles recipe@(Recipe {recipeName}) =
+    let recipeMachineName = machineName recipeName
+        recipeIndex = execLaTeXT (recipeIndexToLaTeX recipeMachineName recipe) >>= prettyPrint
+        recipeFile = execLaTeXT (recipeToLaTeX recipe) >>= prettyPrint
+    in
+    RecipeFiles { recipeFile, recipeIndex, recipeMachineName }
+
+downloadAndConvertRecipe :: String -> IO ()
+downloadAndConvertRecipe url = do
+    root <- (fromDocument . parseLBS) <$> simpleHttp url
+    let (recipe, recipeFiles) = convertRecipe url root
+    writeToStdoutAndFile (recipeType recipe) recipeFiles
+    downloadImage (recipeImageURL recipe) (recipeType recipe) recipeFiles
 
 downloadImage :: Maybe Text -> RecipeType -> RecipeFiles -> IO ()
 downloadImage Nothing _ _ = return ()
 downloadImage (Just imageURL) recipeType (RecipeFiles { recipeMachineName }) =
     simpleHttp (Text.unpack imageURL) >>=
         ByteString.writeFile (show recipeType </> Text.unpack recipeMachineName <.> "jpg")
-
-getRecipeFiles :: Recipe -> RecipeFiles
-getRecipeFiles recipe@(Recipe {recipeName}) =
-    let recipeMachineName = machineName recipeName
-        recipeIndex = execLaTeXT (recipeIndexToLaTeX recipeMachineName recipe) >>= prettyPrint
-        recipeFile = execLaTeXT (recipeToLaTeX recipe) >>= prettyPrint
-    in
-    RecipeFiles { recipeFile, recipeIndex, recipeMachineName }
 
 getUrlHost :: String -> String
 getUrlHost url = fromMaybe "" $ do
@@ -120,4 +110,15 @@ main = do
     if length args < 1 then
         putStrLn "Please provide at least on URL parameter."
     else
-        forM_ args convertRecipe
+        forM_ args downloadAndConvertRecipe
+
+writeToStdoutAndFile :: RecipeType -> RecipeFiles -> IO ()
+writeToStdoutAndFile recipeType recipeFiles = do
+    let RecipeFiles { recipeFile, recipeIndex, recipeMachineName } = recipeFiles
+        directoryName = show recipeType
+        recipeFileName = directoryName </> Text.unpack recipeMachineName <.> "tex"
+    putStrLn "Add this line in recipes.tex:"
+    putStrLn recipeIndex
+    createDirectoryIfMissing False directoryName
+    writeFile recipeFileName recipeFile
+    putStrLn $ "Recipe written to " ++ recipeFileName ++ "."
