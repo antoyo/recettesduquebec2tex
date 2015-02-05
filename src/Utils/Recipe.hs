@@ -13,6 +13,8 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+{-# LANGUAGE OverloadedStrings #-}
+
 {-|
 Module      : Utils.Recipe
 Description : Provides util functions to use with recipes.
@@ -61,9 +63,10 @@ instance Show RecipeType where
     show MainDishes = "mainDishes"
 
 -- |Convert a string into a recipe type or Nothing if the string is invalid.
-readRecipeType :: String -> Maybe RecipeType
-readRecipeType ('0':_) = Just Desserts
-readRecipeType ('1':_) = Just MainDishes
-readRecipeType ('2':_) = Just Breakfasts
-readRecipeType "" = Just Desserts
+readRecipeType :: Text -> Maybe RecipeType
+readRecipeType "dessert" = Just Desserts
+readRecipeType "boisson" = Just Desserts
+readRecipeType "plat-principal" = Just MainDishes
+readRecipeType "souper" = Just MainDishes
+readRecipeType "dejeuner-et-brunch" = Just Breakfasts
 readRecipeType _ = Nothing

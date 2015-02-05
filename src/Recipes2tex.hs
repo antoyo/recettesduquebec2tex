@@ -59,7 +59,7 @@ import Text.XML.Cursor (Cursor, fromDocument)
 import PrettyPrinter (prettyPrint)
 import Converters.RecettesDuQuebec as RecettesDuQuebec (parseRecipe)
 import Utils (machineName)
-import Utils.Recipe (Recipe (Recipe, recipeImageURL, recipeName), RecipeType, readRecipeType)
+import Utils.Recipe (Recipe (Recipe, recipeImageURL, recipeName, recipeType), RecipeType)
 import Utils.RecipeLaTeX (recipeIndexToLaTeX, recipeToLaTeX)
 
 data RecipeFiles = RecipeFiles { recipeFile :: String
@@ -67,34 +67,20 @@ data RecipeFiles = RecipeFiles { recipeFile :: String
                                , recipeMachineName :: Text
                                }
 
-urlToConverter :: [(String, Cursor -> String -> RecipeType -> Recipe)]
+urlToConverter :: [(String, Cursor -> String -> Recipe)]
 urlToConverter = [ ("www.recettes.qc.ca", RecettesDuQuebec.parseRecipe)
                  ]
-
-askRecipeType :: IO RecipeType
-askRecipeType = do
-    putStrLn "0: Desserts"
-    putStrLn "1: Main Dishes"
-    putStrLn "2: Breakfasts"
-    putStrLn "Enter the recipe type [0]:"
-    line <- getLine
-    case readRecipeType line of
-        Just recipeType -> return recipeType
-        Nothing -> do
-            putStrLn "Please enter a number between 0 and 2."
-            askRecipeType
 
 convertRecipe :: String -> IO ()
 convertRecipe url = do
     root <- (fromDocument . parseLBS) <$> simpleHttp url
-    recipeType <- askRecipeType
     let host = getUrlHost url
         maybeParser = lookup host urlToConverter
         parser = fromMaybe (snd $ head urlToConverter) maybeParser
-        recipe = parser root url recipeType
+        recipe = parser root url
         recipeFiles = getRecipeFiles recipe
-    doIO recipeType recipeFiles
-    downloadImage (recipeImageURL recipe) recipeType recipeFiles
+    doIO (recipeType recipe) recipeFiles
+    downloadImage (recipeImageURL recipe) (recipeType recipe) recipeFiles
 
 doIO :: RecipeType -> RecipeFiles -> IO ()
 doIO recipeType recipeFiles = do

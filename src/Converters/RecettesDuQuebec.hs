@@ -33,16 +33,16 @@ module Converters.RecettesDuQuebec (parseRecipe) where
 
 import Control.Applicative ((<$>))
 import Control.Monad ((>=>))
-import Data.Maybe (maybeToList)
+import Data.Maybe (fromMaybe, maybeToList)
 import Data.Text (Text)
-import qualified Data.Text as Text (breakOn, concat, filter, isInfixOf, strip, tail)
+import qualified Data.Text as Text (breakOn, concat, dropWhile, filter, isInfixOf, lines, strip, tail, takeWhile)
 import Text.XML.Cursor (Cursor)
 import Text.XML.Selector.TH (jq, queryT)
 
 import Utils (capitalize, dropFirstWord, getNumber, getNumbers)
 import Utils.LaTeX (nodeToText)
 import Utils.DOM (getAlt, getClasses, getSrc, getText)
-import Utils.Recipe (ListItem (Category, Item), Recipe (Recipe, recipeCookingTime, recipeImageURL, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL), RecipeTime (RecipeTime, recipeTimeHours, recipeTimeMinutes), RecipeType)
+import Utils.Recipe (ListItem (Category, Item), Recipe (Recipe, recipeCookingTime, recipeImageURL, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL), RecipeTime (RecipeTime, recipeTimeHours, recipeTimeMinutes), RecipeType (Desserts), readRecipeType)
 
 getImageURL :: Cursor -> Maybe Text
 getImageURL element = do
@@ -72,12 +72,21 @@ getRecipeName :: Cursor -> Text
 getRecipeName element = Text.concat $ maybeToList $ dropFirstWord <$> name
     where name = getText [jq| [itemprop="name"] |] element
 
+getRecipeType :: Cursor -> RecipeType
+getRecipeType element = fromMaybe Desserts parseRecipeType
+    where maybeGaScript = getText [jq| script[type="text/javascript"] |] element
+          parseRecipeType = do
+              gaScript <- maybeGaScript
+              let recipeTypeLine = head $ filter ("Cat3" `Text.isInfixOf`) $ Text.lines gaScript
+                  recipeType = Text.takeWhile (/= '"') $ Text.tail $ Text.dropWhile (/= '"') recipeTypeLine
+              readRecipeType recipeType
+
 getSteps :: Cursor -> [ListItem]
 getSteps = readStepList . queryT [jq| div.step-detail p |]
 
 -- |Parse the recipe from the DOM element.
-parseRecipe :: Cursor -> String -> RecipeType -> Recipe
-parseRecipe element url recipeType =
+parseRecipe :: Cursor -> String -> Recipe
+parseRecipe element url =
     Recipe { recipeName = getRecipeName element
            , recipeURL = url
            , recipeCookingTime = getCookingTime element
@@ -87,7 +96,7 @@ parseRecipe element url recipeType =
            , recipePortions = getPortions element
            , recipePreparationTime = getPreparationTime element
            , recipeSteps = getSteps element
-           , recipeType
+           , recipeType = getRecipeType element
            }
 
 parseTime :: Maybe Text -> Maybe RecipeTime
