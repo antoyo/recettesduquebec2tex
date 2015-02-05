@@ -29,7 +29,7 @@ This module provides util functions.
 
 module Utils (capitalize, dropFirstWord, getNumber, getNumbers, machineName, tailSafe) where
 
-import Data.Char (isDigit, toLower)
+import Data.Char (isAlphaNum, isDigit, toLower)
 import Data.Maybe (fromMaybe)
 import Data.Either.Combinators (fromRight', rightToMaybe)
 import Data.Text (Text)
@@ -73,6 +73,9 @@ getNumbers string
     where start = Text.dropWhile (not . isDigit) string
           (number, rest) = Text.span isDigit start
 
+isAlphaNumSpace :: Char -> Bool
+isAlphaNumSpace character = isAlphaNum character || character == ' '
+
 letters :: [(Char, Char)]
 letters = [ ('á', 'a')
           , ('à', 'a')
@@ -111,10 +114,7 @@ removeCommonWords :: Text -> Text
 removeCommonWords string = Text.unwords $ filter (`notElem` commonWords) $ splitWords string
 
 removeSpecialCharacters :: Text -> Text
-removeSpecialCharacters = Text.filter (`notElem` specialCharacters)
-
-specialCharacters :: String
-specialCharacters = "-'()"
+removeSpecialCharacters = Text.filter isAlphaNumSpace
 
 splitWords :: Text -> [Text]
 splitWords = Text.split (`elem` "' ")

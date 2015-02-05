@@ -13,7 +13,6 @@
 -- You should have received a copy of the GNU General Public License
 -- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
--- TODO: change the machineName function to remove any non-alpha characters.
 -- TODO: find the recipe type in the HTML. The only place where it seems to be is in the Google Analytics JS code, for instance:
 -- _gaq.push(['b._setCustomVar', 3, 'Cat3', "dessert", 3]);
 -- TODO: try to convert impure functions to pure functions.
