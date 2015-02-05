@@ -29,7 +29,7 @@ Portability : POSIX
 This module provides util functions to use with HaTeX values.
 -}
 
-module Utils.LaTeX (comm1Opt1, comm3, maybeLaTeX, nodeToText, showLaTeX) where
+module Utils.LaTeX (comm1Opt1, comm3, maybeLaTeX, nodeToText, showLaTeX, textToLaTeX) where
 
 import Data.Foldable (forM_)
 import Data.String (fromString)
@@ -37,7 +37,8 @@ import Data.Text (Text)
 import qualified Data.Text.Lazy as LazyText (toStrict)
 import Text.LaTeX (LaTeXT_)
 import Text.LaTeX.Base.Class (LaTeXC, comm1, liftL2, liftL3)
-import Text.LaTeX.Base.Syntax (LaTeX (TeXComm), TeXArg (FixArg, OptArg))
+import Text.LaTeX.Base.Commands (raw)
+import Text.LaTeX.Base.Syntax (LaTeX (TeXComm), TeXArg (FixArg, OptArg), protectText)
 import Text.XML.Cursor (Cursor)
 import Text.XML.Scraping (innerText)
 
@@ -61,3 +62,7 @@ nodeToText = LazyText.toStrict . innerText
 -- |Convert a showable value to a LaTeX value.
 showLaTeX :: (LaTeXC l, Show s) => s -> l
 showLaTeX = fromString . show
+
+-- |Escape reserved characters from the text and convert it to a LaTeX value.
+textToLaTeX :: LaTeXC l => Text -> l
+textToLaTeX = raw . protectText

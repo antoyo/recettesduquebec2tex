@@ -34,10 +34,9 @@ import Data.Monoid (mempty)
 import Data.String (fromString)
 import Data.Text (Text)
 import Text.LaTeX (LaTeXT_, comment, item, lnbk)
-import Text.LaTeX.Base.Commands (raw)
 
 import Cookbook (cookingPart, cookingTime, ingredients, marinateTime, portions, preparationTime, recipe, steps, totalTime)
-import Utils.LaTeX (maybeLaTeX, showLaTeX)
+import Utils.LaTeX (maybeLaTeX, showLaTeX, textToLaTeX)
 import Utils.Recipe (ListItem (Category, Item), Recipe (Recipe, recipeCookingTime, recipeIngredients, recipeMarinateTime, recipeName, recipePortions, recipePreparationTime, recipeSteps, recipeType, recipeURL), RecipeTime (RecipeTime, recipeTimeHours, recipeTimeMinutes))
 
 -- |Convert a ListItem to a LaTeX value.
@@ -46,10 +45,10 @@ listItemToLaTeX (Category category) addLineBreak = do
     when addLineBreak
         lnbk
     item $ Just mempty
-    cookingPart $ raw category
+    cookingPart $ textToLaTeX category
 listItemToLaTeX (Item itemList) _ = do
     item Nothing
-    raw itemList
+    textToLaTeX itemList
 
 -- |Convert a list of items to a LaTeX list of items.
 listItemToLaTeXList :: Monad m => [ListItem] -> LaTeXT_ m
@@ -61,7 +60,7 @@ listItemToLaTeXList = listItemToLaTeXList' False
 
 -- |Convert the recipe to a '\recipe{}' LaTeX command.
 recipeIndexToLaTeX :: Monad m => Text -> Recipe -> LaTeXT_ m
-recipeIndexToLaTeX machineRecipeName (Recipe {recipeName, recipeType}) = recipe (showLaTeX recipeType) (raw machineRecipeName) (raw recipeName)
+recipeIndexToLaTeX machineRecipeName (Recipe {recipeName, recipeType}) = recipe (showLaTeX recipeType) (textToLaTeX machineRecipeName) (textToLaTeX recipeName)
 
 recipeTimeToLaTeX :: Monad m => (Maybe (LaTeXT_ m) -> LaTeXT_ m -> LaTeXT_ m) -> Maybe RecipeTime -> LaTeXT_ m
 recipeTimeToLaTeX _ Nothing = mempty
